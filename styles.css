@@ -914,6 +914,104 @@ a:hover {
   font-size: 14px;
 }
 
+/* Community Trials Section */
+.trials-section {
+  padding: 80px 0;
+  background-color: var(--color-paper-base);
+  border-top: 2px solid var(--color-paper-border);
+}
+
+.trials-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.trial-card {
+  background-color: #ffffff;
+  border: 1px solid var(--color-paper-border);
+  border-radius: 6px;
+  padding: 24px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+}
+
+.trial-status {
+  align-self: start;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.trial-status.active {
+  background-color: var(--color-stamp-green-bg);
+  color: var(--color-stamp-green);
+}
+
+.trial-status.upcoming {
+  background-color: var(--color-stamp-amber-bg);
+  color: var(--color-stamp-amber);
+}
+
+.trial-meta {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--color-ink-muted);
+  margin: 16px 0;
+  padding-top: 12px;
+  border-top: 1px dashed var(--color-paper-border);
+}
+
+/* Event Section & Waitlist Card */
+.event-section {
+  padding: 80px 0;
+  background-color: var(--color-paper-card);
+  border-top: 2px solid var(--color-paper-border);
+}
+
+.event-card-box {
+  background-color: #ffffff;
+  border: 2px solid var(--color-ink-primary);
+  border-radius: 8px;
+  padding: 44px;
+  box-shadow: 12px 12px 0px #d4c3ab, var(--shadow-lift);
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.event-content {
+  text-align: center;
+}
+
+.event-content h2 {
+  font-size: 36px;
+  margin: 12px 0 16px;
+}
+
+.event-content p {
+  font-size: 17px;
+  color: var(--color-ink-secondary);
+  max-width: 720px;
+  margin: 0 auto 24px;
+}
+
+.event-cta-wrap {
+  margin-bottom: 16px;
+}
+
+.event-note {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--color-ink-muted);
+}
+
 /* Pricing Section */
 .pricing-section {
   padding: 80px 0;

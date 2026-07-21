@@ -60,6 +60,7 @@
         <a href="#vault" class="nav-link">Ancestral Library (500)</a>
         <a href="#benefits" class="nav-link">Member Benefits</a>
         <a href="#trials" class="nav-link">Community Trials</a>
+        <a href="#event" class="nav-link">Garden Event</a>
         <a href="#pricing" class="nav-link">Pricing Pass</a>
       </nav>
 
@@ -226,7 +227,7 @@
       <!-- Paywall Counter Banner -->
       <div class="paywall-counter-banner">
         <div class="counter-text">
-          🔓 <strong>5 Sample Field Notes Unlocked</strong> for Public Preview &bull; 🔒 <strong>495 Field Notes Locked</strong> in the Member Vault
+          🔓 <strong>4 Sample Field Notes Unlocked Per Vegetable</strong> for Public Preview &bull; 🔒 <strong>Remaining Vault Gated</strong> behind Member Pass
         </div>
         <button class="btn btn-primary btn-sm" onclick="openCheckoutModal('$39 Launch Pass')">
           Unlock All 500 Notes ($39)
@@ -304,6 +305,72 @@
     </div>
   </div>
 
+  <!-- Community Trials Section (Gated Funnel) -->
+  <section class="trials-section" id="trials">
+    <div class="container">
+      <div class="section-header">
+        <span class="badge badge-accent">PARTICIPATORY SCIENCE</span>
+        <h2>Community Backyard Trials ("Try It Yourself")</h2>
+        <p>Compare folk claims side-by-side with control groups. Active and upcoming trials are open for viewing below. Access to input data and full member results requires pass validation.</p>
+      </div>
+
+      <div class="trials-grid">
+        <div class="trial-card">
+          <span class="trial-status active">LIVE TRIAL #104</span>
+          <h3>Deep Planting vs. Shallow Control in Texas Heat</h3>
+          <p>Gardeners are tracking plant height, root volume, and drought resistance across 20 tomato plants in Zone 8a.</p>
+          <div class="trial-meta">
+            <span><strong>142</strong> Active Participants</span>
+            <span>🔒 <strong>Results Locked</strong> (Members Only)</span>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="handleTrialAction('Deep Planting Trial')">Join Trial & View Results</button>
+        </div>
+
+        <div class="trial-card">
+          <span class="trial-status active">LIVE TRIAL #105</span>
+          <h3>30% Shade Cloth Mesh vs. Full Sun Summer Gap</h3>
+          <p>Testing blossom retention during 100°F+ Fort Worth July heat waves on indeterminate tomatoes.</p>
+          <div class="trial-meta">
+            <span><strong>98</strong> Active Participants</span>
+            <span>🔒 <strong>Results Locked</strong> (Members Only)</span>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="handleTrialAction('Shade Cloth Trial')">Join Trial & View Results</button>
+        </div>
+
+        <div class="trial-card">
+          <span class="trial-status upcoming">UPCOMING FALL TRIAL</span>
+          <h3>July 4th Transplants vs. Aug 1st Transplants</h3>
+          <p>Measuring fall yield window before first November frost in North Texas micro-climates.</p>
+          <div class="trial-meta">
+            <span>Starts July 4th</span>
+            <span>🔒 <strong>Registration Gated</strong> (Members Only)</span>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="handleTrialAction('Fall Tomato Trial')">Pre-register for Trial</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Local Cheatcode Gardeners Event Section (Interest Gauging Card) -->
+  <section class="event-section" id="event">
+    <div class="container">
+      <div class="event-card-box">
+        <div class="event-content">
+          <span class="badge badge-accent">IN-PERSON CONFERENCES</span>
+          <h2>Local Cheatcode Gardeners Conference</h2>
+          <p>We are planning a series of traveling in-person conferences bringing together regional agricultural extension researchers, garden influencers, heirloom vendors, and generational gardeners to share hard-won cheat codes. Help us gauge interest and demand to bring the event to your city first!</p>
+          
+          <div class="event-cta-wrap">
+            <button class="btn btn-primary btn-lg" onclick="openEventWaitlistModal()">
+              🎟️ Reserve My Spot & Join Local Waitlist
+            </button>
+          </div>
+          <span class="event-note">Opting-in gives you exclusive early access to tickets and special early-bird discounts when the dates are confirmed.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Pricing Pass Section -->
   <section class="pricing-section" id="pricing">
     <div class="container">
@@ -358,21 +425,52 @@
     </div>
   </section>
 
-  <!-- Email Capture / Beehiiv Section -->
+  <!-- Email Capture / Lead Magnet Section -->
   <section class="email-section">
     <div class="container email-box">
       <div class="email-content">
-        <h2>Join 12,000+ Texas Gardeners Before It Was Written</h2>
-        <p>Get weekly Texas planting alerts, science myth-busters, and free sample Vault entries delivered to your inbox.</p>
+        <h2>Download the Top 20 Tomato Cheat Codes PDF Guide</h2>
+        <p>Get instant access to our hand-written 1954 Texas Tomato Survival Guide. Join 12,000+ gardeners getting weekly science myth-busters.</p>
         
         <form class="email-form" id="beehiivForm" onsubmit="handleEmailSubmit(event)">
           <input type="email" id="emailInput" class="email-input" placeholder="Enter your email address..." required>
-          <button type="submit" class="btn btn-primary">Subscribe Free</button>
+          <button type="submit" class="btn btn-primary">📩 Download Free PDF</button>
         </form>
-        <span class="email-subtext">Zero spam. Unsubscribe anytime. Powered by Beehiiv Scale.</span>
+        <span class="email-subtext">Instant PDF download. Zero spam. Unsubscribe anytime. Powered by Beehiiv Scale.</span>
       </div>
     </div>
   </section>
+
+  <!-- Local Event Waitlist Modal -->
+  <div class="modal-backdrop" id="eventWaitlistModal">
+    <div class="modal-card modal-sm text-center">
+      <button class="modal-close" onclick="closeEventWaitlistModal()">✕</button>
+      <span class="badge badge-accent">EVENT INTEREST SURVEY</span>
+      <h3>Reserve Your Event Spot</h3>
+      <p style="margin-bottom: 20px; font-size: 15px;">Join the local waitlist. We will notify you when a conference is scheduled near your city.</p>
+
+      <form id="eventWaitlistForm" onsubmit="submitEventWaitlist(event)">
+        <div style="display: flex; flex-direction: column; gap: 12px; text-align: left; margin-bottom: 20px;">
+          <label style="font-family: var(--font-sans); font-size: 12px; font-weight: 700;">PREFERRED TEXAS CITY:</label>
+          <select id="eventCity" class="filter-select" style="width: 100%;" required>
+            <option value="Fort Worth">Fort Worth / Tarrant County</option>
+            <option value="Dallas">Dallas / DFW Metroplex</option>
+            <option value="Houston">Houston / Southeast Texas</option>
+            <option value="San Antonio">San Antonio / South Texas</option>
+            <option value="Austin">Austin / Central Texas</option>
+          </select>
+          
+          <label style="font-family: var(--font-sans); font-size: 12px; font-weight: 700;">YOUR EMAIL ADDRESS:</label>
+          <input type="email" id="eventEmail" class="zip-input" placeholder="Enter email for early bird invite" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg">
+          🎟️ Join Conference Waitlist
+        </button>
+      </form>
+      <p class="modal-foot-note">Gauging interest helps us allocate seed vendors and agricultural extension guests.</p>
+    </div>
+  </div>
 
   <!-- Footer -->
   <footer class="site-footer">

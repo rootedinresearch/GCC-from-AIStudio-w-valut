@@ -1,5 +1,5 @@
 /* ==========================================================================
-   GARDEN CHEAT CODES — ANCESTRAL LIBRARY ENGINE & TRANSITIONAL SHOWCASE (v3.2)
+   GARDEN CHEAT CODES — ANCESTRAL LIBRARY ENGINE & TRANSITIONAL SHOWCASE (v3.3)
    ========================================================================== */
 
 let vaultEntries = [];
@@ -7,9 +7,6 @@ let currentLang = 'EN';
 let currentCategory = 'all';
 let currentVerdict = 'all';
 let searchQuery = '';
-
-// Unlocked Hero Entries (Free Public Sample Proof)
-const UNLOCKED_PREVIEW_IDS = ['TOM-001', 'TOM-002', 'PEP-001', 'SQU-001', 'OKR-001'];
 
 // Transitional Showcase Vegetables Data
 const SHOWCASE_ITEMS = [
@@ -68,6 +65,9 @@ const SHOWCASE_ITEMS = [
 let currentShowcaseIndex = 0;
 let showcaseTimer = null;
 let isShowcasePaused = false;
+
+// Track unlocked count dynamically per crop category
+const CATEGORY_UNLOCKED_LIMITS = {};
 
 // Translations Dictionary
 const translations = {
@@ -206,8 +206,18 @@ function renderVault() {
     return;
   }
 
+  // Reset category counter to enforce: first 4 entries per category are UNLOCKED, remaining 495 are locked
+  const categoryCounter = {};
+
   filtered.forEach(entry => {
-    const isUnlocked = UNLOCKED_PREVIEW_IDS.includes(entry.id);
+    // Count occurrence per category to limit unlocked preview to 4 codes per vegetable
+    const cat = entry.crop;
+    if (!categoryCounter[cat]) {
+      categoryCounter[cat] = 0;
+    }
+    categoryCounter[cat]++;
+
+    const isUnlocked = categoryCounter[cat] <= 4;
     const card = document.createElement('div');
     
     card.className = `library-card ${isUnlocked ? 'unlocked-card' : 'locked-card'}`;
@@ -400,6 +410,30 @@ function closePaywallModal() {
   document.getElementById('paywallModal').classList.remove('active');
 }
 
+// Gated Trials Funnel Handler
+function handleTrialAction(trialName) {
+  document.getElementById('paywallModalTitle').textContent = `Join Gated Trial: "${trialName}"`;
+  document.getElementById('paywallModal').classList.add('active');
+}
+
+// Local Conference Waitlist Handlers
+function openEventWaitlistModal() {
+  document.getElementById('eventWaitlistModal').classList.add('active');
+}
+
+function closeEventWaitlistModal() {
+  document.getElementById('eventWaitlistModal').classList.remove('active');
+}
+
+function submitEventWaitlist(event) {
+  event.preventDefault();
+  const city = document.getElementById('eventCity').value;
+  const email = document.getElementById('eventEmail').value;
+
+  alert(`🎟️ Spot Reserved!\n\nWe have recorded your interest for ${city} with your email address (${email}). You will receive priority first-access and early bird discounts as soon as the date is locked!`);
+  closeEventWaitlistModal();
+}
+
 // Copy Promo Code Helper
 function copyPromoCode() {
   navigator.clipboard.writeText("CHEATCODE25");
@@ -470,13 +504,13 @@ function simulateSuccessfulPayment() {
   closeCheckoutModal();
 }
 
-// Beehiiv Newsletter Form Submission Handler
+// Beehiiv Newsletter Form Submission Handler (Lead Magnet Update)
 function handleEmailSubmit(event) {
   event.preventDefault();
   const email = document.getElementById('emailInput').value;
 
   if (email) {
-    alert(`🌱 Thank you for subscribing (${email})!\n\nYour 5-day Texas Gardening Onboarding Drip has been activated via Beehiiv Scale API.`);
+    alert(`🌱 Thank you for subscribing!\n\nWe have sent your download link for the "Top 20 Tomato Cheat Codes PDF Guide" to ${email}. Check your inbox!`);
     document.getElementById('emailInput').value = '';
   }
 }
