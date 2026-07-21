@@ -1,5 +1,6 @@
 /* ==========================================================================
-   GARDEN CHEAT CODES — MINIMALIST FIELD GUIDE ENGINE (v4.5)
+   GARDEN CHEAT CODES — MINIMALIST FIELD GUIDE ENGINE (v5.0)
+   Synchronized with Brand & Design Notes + Autopilot Operating Plan
    ========================================================================== */
 
 let vaultEntries = [];
@@ -72,7 +73,7 @@ const translations = {
     heroTitle: "Before It Was Written,<br><span class='highlight'>Somebody Already Knew.</span>",
     heroDesc: "Grandparents and elders figured things out over generations of dirt under their nails. We take what those ancestors knew seriously enough to test it against peer-reviewed horticultural science — honoring it when they were right, explaining the mechanism, and correcting the myths.",
     searchPlaceholder: "Search 500 field notes (e.g. blossom rot, deep planting, eggshells, milk)...",
-    unlockBtn: "Unlock Full Vault ($39)",
+    unlockBtn: "Unlock Full Vault ($49)",
     atomOldWays: "1. What The Old Ways Say (Old-Time Gardening Tip)",
     atomCultural: "2. Family & Generational Lore",
     atomScience: "3. What The Science Proves (University Research)",
@@ -85,7 +86,7 @@ const translations = {
     heroTitle: "Antes de Estar Escrito,<br><span class='highlight'>Alguien Ya Lo Sabía.</span>",
     heroDesc: "Nuestros abuelos y mayores descubrieron los secretos de la tierra durante generaciones. Tomamos ese conocimiento ancestral y lo verificamos contra investigaciones hortícolas revisadas por pares.",
     searchPlaceholder: "Buscar 500 notas de campo (ej. pudrición apical, plantación profunda, cáscaras de huevo)...",
-    unlockBtn: "Obtener Pase ($39)",
+    unlockBtn: "Obtener Pase ($49)",
     atomOldWays: "1. Lo Que Decían los Antiguos",
     atomCultural: "2. Historias y Lore Familiar",
     atomScience: "3. Lo Que Demuestra la Ciencia",
@@ -246,7 +247,7 @@ function renderVault() {
         <div class="paywall-overlay-box" onclick="openPaywallModal('${displayTitle.replace(/'/g, "\\'")}')">
           <div class="paywall-lock-title">🔒 LOCKED MEMBER FIELD NOTE</div>
           <div class="paywall-lock-desc">Science proof & step-by-step action plan locked.</div>
-          <button class="btn btn-primary btn-sm btn-block">Unlock Full Note ($39) →</button>
+          <button class="btn btn-primary btn-sm btn-block">Unlock Full Note ($49) →</button>
         </div>
       `;
     }
@@ -373,7 +374,7 @@ function openEntryModal(entryId) {
         <div>
           <strong>${entry.product_recommendation.name}</strong>
           <p style="font-size: 13px; color: var(--color-stamp-green); margin-top: 4px; font-family: var(--font-sans);">
-            🎟️ <strong>Exclusive Member Perk:</strong> Use code <strong>${entry.product_recommendation.discount_code}</strong> for 25% off non-GMO seeds at SeedsNow.
+            🎟️ <strong>Exclusive Member Perk:</strong> Use code <strong>${entry.product_recommendation.discount_code}</strong> for 25% off non-GMO seeds at SeedsNow (365-day cookie guarantee).
           </p>
         </div>
         <a href="${entry.product_recommendation.url}" target="_blank" class="btn btn-primary btn-sm">Redeem 25% Off →</a>
@@ -422,7 +423,7 @@ function submitEventWaitlist(event) {
 
 function copyPromoCode() {
   navigator.clipboard.writeText("CHEATCODE25");
-  alert("🎟️ Promo code 'CHEATCODE25' copied to clipboard!\nUse this at SeedsNow checkout for 25% off your order.");
+  alert("🎟️ Promo code 'CHEATCODE25' copied to clipboard!\nUse this at SeedsNow checkout for 25% off your order (365-day cookie guarantee).");
 }
 
 function detectZone() {
@@ -473,7 +474,7 @@ function toggleLanguage() {
 function openCheckoutModal(planName) {
   closePaywallModal();
   document.getElementById('checkoutProductName').textContent = planName;
-  document.getElementById('checkoutPrice').textContent = planName.includes('$59') ? '$59.00 / year' : '$39.00';
+  document.getElementById('checkoutPrice').textContent = planName.includes('$79') ? '$79.00 / year' : '$49.00';
   document.getElementById('checkoutModal').classList.add('active');
 }
 
@@ -482,7 +483,7 @@ function closeCheckoutModal() {
 }
 
 function simulateSuccessfulPayment() {
-  alert("🎉 Payment Successful via Stripe!\n\nYour Beehiiv welcome email with your 500-Entry Vault Access Pass and member promo code 'CHEATCODE25' has been dispatched. Welcome to Garden Cheat Codes!");
+  alert("🎉 Payment Successful via Stripe!\n\nYour Beehiiv welcome email with your Vault Access Pass, member promo code 'CHEATCODE25', and $49 Annual Upgrade Credit has been dispatched. Welcome to Garden Cheat Codes!");
   closeCheckoutModal();
 }
 
