@@ -1,5 +1,5 @@
 /* ==========================================================================
-   GARDEN CHEAT CODES — ANCESTRAL LIBRARY ENGINE & TRANSITIONAL SHOWCASE (v3.3)
+   GARDEN CHEAT CODES — ANCESTRAL LIBRARY ENGINE & MULTI-THEME ENGINE (v4.0)
    ========================================================================== */
 
 let vaultEntries = [];
@@ -7,6 +7,21 @@ let currentLang = 'EN';
 let currentCategory = 'all';
 let currentVerdict = 'all';
 let searchQuery = '';
+
+// Design Taste Theme Switcher Handler
+function setDesignTheme(themeClass) {
+  document.body.className = themeClass;
+  
+  // Update button active state
+  document.querySelectorAll('.switcher-btn').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.getAttribute('onclick').includes(themeClass)) {
+      btn.classList.add('active');
+    }
+  });
+
+  console.log(`Design taste switched to: ${themeClass}`);
+}
 
 // Transitional Showcase Vegetables Data
 const SHOWCASE_ITEMS = [
@@ -65,9 +80,6 @@ const SHOWCASE_ITEMS = [
 let currentShowcaseIndex = 0;
 let showcaseTimer = null;
 let isShowcasePaused = false;
-
-// Track unlocked count dynamically per crop category
-const CATEGORY_UNLOCKED_LIMITS = {};
 
 // Translations Dictionary
 const translations = {
@@ -142,7 +154,6 @@ function renderShowcaseCard(index) {
   const wrap = document.getElementById('showcaseCardWrap');
   if (!wrap) return;
 
-  // Update Active Tab Button UI
   document.querySelectorAll('.showcase-tab').forEach(tab => {
     tab.classList.remove('active');
     if (tab.textContent.includes(item.category)) {
@@ -206,11 +217,9 @@ function renderVault() {
     return;
   }
 
-  // Reset category counter to enforce: first 4 entries per category are UNLOCKED, remaining 495 are locked
   const categoryCounter = {};
 
   filtered.forEach(entry => {
-    // Count occurrence per category to limit unlocked preview to 4 codes per vegetable
     const cat = entry.crop;
     if (!categoryCounter[cat]) {
       categoryCounter[cat] = 0;
@@ -228,7 +237,6 @@ function renderVault() {
     const doiUrl = entry.doi_url || `https://doi.org/${entry.doi}`;
 
     if (isUnlocked) {
-      // Unlocked Preview Card HTML
       card.innerHTML = `
         <div class="library-card-header">
           <span class="entry-id">${entry.id} &bull; ${entry.crop}</span>
@@ -242,7 +250,6 @@ function renderVault() {
         </div>
       `;
     } else {
-      // Locked Paywall Card HTML (Gated Content)
       card.innerHTML = `
         <div class="library-card-header">
           <span class="entry-id">${entry.id} &bull; ${entry.crop}</span>
@@ -279,7 +286,6 @@ function getFilteredEntries() {
   });
 }
 
-// Verdict Stamp Mapping
 function getVerdictClass(verdict) {
   switch (verdict) {
     case 'Supported': return 'verdict-supported';
@@ -291,7 +297,6 @@ function getVerdictClass(verdict) {
   }
 }
 
-// Filter Control Listeners
 function filterVault() {
   searchQuery = document.getElementById('vaultSearch').value;
   currentVerdict = document.getElementById('verdictFilter').value;
@@ -311,7 +316,6 @@ function setCategoryPill(category) {
   renderVault();
 }
 
-// Open 7-Part Content Atom Drawer
 function openEntryModal(entryId) {
   const entry = vaultEntries.find(e => e.id === entryId);
   if (!entry) return;
@@ -336,7 +340,7 @@ function openEntryModal(entryId) {
         <h2>${displayTitle}</h2>
       </div>
 
-      <div class="atom-section" style="border-left-color: #b45309; background-color: #fefce8;">
+      <div class="atom-section" style="border-left-color: #b45309; background-color: var(--color-paper-card);">
         <h4>${t.atomOldWays}</h4>
         <p style="font-family: var(--font-handwritten); font-size: 24px; color: #78350f; line-height: 1.2;">"${displayFolk}"</p>
       </div>
@@ -370,12 +374,12 @@ function openEntryModal(entryId) {
         <p>${entry.professional_practice}</p>
       </div>
 
-      <div class="atom-section" style="border-left-color: #1c1917; background-color: #ffffff; border: 2px solid #1c1917;">
+      <div class="atom-section" style="border-left-color: #1c1917; background-color: var(--color-paper-base); border: 2px solid #1c1917;">
         <h4 style="color: #1c1917;">${t.atomCheat}</h4>
         <p style="font-size: 17px; font-weight: 500;">${entry.cheat_code}</p>
       </div>
 
-      <div class="atom-section" style="border-left-color: #1e40af; background-color: #eff6ff;">
+      <div class="atom-section" style="border-left-color: #1e40af; background-color: var(--color-stamp-green-bg);">
         <h4 style="color: #1e40af;">${t.atomTrial}</h4>
         <p>${entry.try_it_yourself}</p>
       </div>
@@ -399,7 +403,6 @@ function closeEntryModal() {
   document.getElementById('entryModal').classList.remove('active');
 }
 
-// Open / Close Paywall Gate Modal
 function openPaywallModal(entryTitle) {
   const cleanTitle = entryTitle.replace(/\s*\(Protocol\s*\d+\)/gi, '');
   document.getElementById('paywallModalTitle').textContent = `Unlock Field Note: "${cleanTitle}"`;
@@ -410,13 +413,11 @@ function closePaywallModal() {
   document.getElementById('paywallModal').classList.remove('active');
 }
 
-// Gated Trials Funnel Handler
 function handleTrialAction(trialName) {
   document.getElementById('paywallModalTitle').textContent = `Join Gated Trial: "${trialName}"`;
   document.getElementById('paywallModal').classList.add('active');
 }
 
-// Local Conference Waitlist Handlers
 function openEventWaitlistModal() {
   document.getElementById('eventWaitlistModal').classList.add('active');
 }
@@ -434,13 +435,11 @@ function submitEventWaitlist(event) {
   closeEventWaitlistModal();
 }
 
-// Copy Promo Code Helper
 function copyPromoCode() {
   navigator.clipboard.writeText("CHEATCODE25");
   alert("🎟️ Promo code 'CHEATCODE25' copied to clipboard!\nUse this at SeedsNow checkout for 25% off your order.");
 }
 
-// Zip Code Hardiness Zone Detector
 function detectZone() {
   const zip = document.getElementById('zipInput').value.trim();
   const resultDiv = document.getElementById('zoneResult');
@@ -474,7 +473,6 @@ function detectZone() {
   document.getElementById('heroZoneBadge').textContent = zoneInfo;
 }
 
-// Toggle Language (EN / ES)
 function toggleLanguage() {
   currentLang = currentLang === 'EN' ? 'ES' : 'EN';
   document.getElementById('langLabel').textContent = currentLang === 'EN' ? '🌐 EN / ES' : '🌐 ES / EN';
@@ -487,7 +485,6 @@ function toggleLanguage() {
   renderVault();
 }
 
-// Stripe Checkout Modal Simulation
 function openCheckoutModal(planName) {
   closePaywallModal();
   document.getElementById('checkoutProductName').textContent = planName;
@@ -504,7 +501,6 @@ function simulateSuccessfulPayment() {
   closeCheckoutModal();
 }
 
-// Beehiiv Newsletter Form Submission Handler (Lead Magnet Update)
 function handleEmailSubmit(event) {
   event.preventDefault();
   const email = document.getElementById('emailInput').value;
