@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Garden Cheat Codes — Before It Was Written</title>
+  <meta name="description" content="Science-verified gardening content validating traditional folk wisdom against peer-reviewed horticultural research. Built for Texas and Gulf South backyard gardeners.">
+  <meta name="keywords" content="Texas gardening, tomato cheat codes, Zone 8a planting calendar, folk wisdom science, AgriLife tomato guide, DFW vegetable garden">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- AI SEO & GEO JSON-LD Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Garden Cheat Codes",
+    "url": "https://gardencheatcodes.org",
+    "description": "Science-verified gardening content validating traditional folk wisdom against peer-reviewed horticultural research.",
+    "publisher": {
+      "@type": "Organization",
+      "name": "Garden Cheat Codes Research Lab",
+      "url": "https://gardencheatcodes.org"
+    }
+  }
+  </script>
+</head>
+<body>
+
+  <!-- Announcement Bar -->
+  <div class="announcement-bar" id="announcementBar">
+    <div class="container announcement-content">
+      <span class="badge badge-accent">ZONE 8a / DFW ALERT</span>
+      <span>🌱 Texas Fall Tomato Planting Anchor Date: <strong>July 4th</strong> — Start seed prep now!</span>
+      <button class="close-announcement" onclick="document.getElementById('announcementBar').style.display='none'">✕</button>
+    </div>
+  </div>
+
+  <!-- Header / Navigation -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="#" class="brand-logo">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" />
+          <path d="M12 4v14" />
+        </svg>
+        <div class="brand-text">
+          <span class="brand-name">GARDEN CHEAT CODES</span>
+          <span class="brand-tagline">Before It Was Written</span>
+        </div>
+      </a>
+
+      <nav class="main-nav">
+        <a href="#vault" class="nav-link">Ancestral Library (500)</a>
+        <a href="#benefits" class="nav-link">Member Benefits</a>
+        <a href="#trials" class="nav-link">Community Trials</a>
+        <a href="#pricing" class="nav-link">Pricing Pass</a>
+      </nav>
+
+      <div class="header-actions">
+        <button class="lang-toggle" id="langToggle" onclick="toggleLanguage()">
+          <span id="langLabel">🌐 EN / ES</span>
+        </button>
+        <button class="btn btn-primary" onclick="openCheckoutModal('$39 Launch Pass')">Unlock Full Vault ($39)</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section (Ancestral Storytelling & Transitional Showcase) -->
+  <section class="hero-section">
+    <div class="container hero-grid">
+      <div class="hero-content">
+        <div class="hero-badge-wrap">
+          <span class="badge badge-hero">PEER-REVIEWED HORTICULTURAL VERIFICATION</span>
+          <span class="badge badge-zone" id="heroZoneBadge">Zone 8a (DFW / Texas)</span>
+        </div>
+
+        <h1 class="hero-title">Before It Was Written,<br><span class="highlight">Somebody Already Knew.</span></h1>
+        
+        <div class="handwritten-quote-banner">
+          "The knowledge that lived in people we loved doesn't have to disappear in the dirt..."
+        </div>
+
+        <p class="hero-description" id="heroDesc">
+          Grandparents and elders figured things out over generations of dirt under their nails. 
+          We take what those ancestors knew seriously enough to test it against peer-reviewed horticultural science — 
+          honoring it when they were right, explaining the mechanism, and correcting the myths.
+        </p>
+
+        <!-- Zip Code Micro-Climate Detector -->
+        <div class="zip-detector-card">
+          <label for="zipInput" class="detector-label">Enter your Zip Code for hyper-local Texas planting timing:</label>
+          <div class="zip-input-group">
+            <input type="text" id="zipInput" class="zip-input" placeholder="e.g. 76102 or 75001" maxlength="5" value="76102">
+            <button class="btn btn-secondary" onclick="detectZone()">Detect Zone & Calendar</button>
+          </div>
+          <div class="zone-result" id="zoneResult">
+            <strong>Detected: Fort Worth / DFW (Zone 8a)</strong> — Spring Tomato Opening: <em>Mid-Feb</em> | Summer Heat Window: <em>June 15 - Aug 20</em>
+          </div>
+        </div>
+
+        <div class="hero-cta-group">
+          <button class="btn btn-primary btn-lg" onclick="openCheckoutModal('$39 Launch Pass')">
+            Unlock All 500 Ancestral Field Notes ($39)
+          </button>
+          <a href="#vault" class="btn btn-outline btn-lg">Explore Sample Field Notes</a>
+        </div>
+
+        <div class="trust-stats">
+          <div class="stat-item">
+            <span class="stat-num">500</span>
+            <span class="stat-label">Verified Folk Claims</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num">100%</span>
+            <span class="stat-label">Peer-Reviewed Citations</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num">86%</span>
+            <span class="stat-label">Tomato Gardeners Served</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transitional Field Notes Showcase Sidebar -->
+      <div class="hero-visual">
+        <div class="journal-binder-preview">
+          <!-- Category Selector Tabs -->
+          <div class="showcase-tabs">
+            <button class="showcase-tab active" onclick="switchShowcaseTab('Tomatoes')">🍅 Tomatoes</button>
+            <button class="showcase-tab" onclick="switchShowcaseTab('Peppers')">🌶️ Peppers</button>
+            <button class="showcase-tab" onclick="switchShowcaseTab('Squash')">🥒 Squash</button>
+            <button class="showcase-tab" onclick="switchShowcaseTab('Okra')">🌾 Okra</button>
+            <button class="showcase-tab" onclick="switchShowcaseTab('Soil')">🪴 Soil</button>
+          </div>
+
+          <!-- Dynamic Rotating Field Note Card -->
+          <div class="showcase-card-wrap" id="showcaseCardWrap">
+            <!-- Dynamic content injected via JS -->
+          </div>
+
+          <div class="showcase-footer">
+            <span class="showcase-progress-indicator" id="showcaseProgress">Auto-cycling vegetable field notes (1 of 5)</span>
+            <button class="btn btn-outline btn-sm" onclick="pauseShowcaseRotation()" id="showcasePauseBtn">Pause ⏸</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Member Benefits Section -->
+  <section class="benefits-section" id="benefits">
+    <div class="container">
+      <div class="section-header">
+        <span class="badge badge-accent">EXCLUSIVE MEMBER PERKS</span>
+        <h2>Garden Cheat Codes Member Benefits</h2>
+        <p>Unlock premium perks designed to make your garden thrive with exclusive discounts and hyper-local Texas guidance.</p>
+      </div>
+
+      <div class="benefits-grid">
+        <!-- Benefit 1: Promo Code -->
+        <div class="benefit-card featured-benefit">
+          <div class="benefit-icon">🏷️</div>
+          <h3>Exclusive SeedsNow Discount</h3>
+          <p>Members unlock promo code <strong>CHEATCODE25</strong> for <strong>25% OFF</strong> all non-GMO heirloom seeds, starter packs, and gardening accessories at SeedsNow.</p>
+          <div class="promo-box">
+            <span class="promo-label">MEMBER PROMO CODE:</span>
+            <code class="promo-code">CHEATCODE25</code>
+            <button class="btn btn-secondary btn-sm" onclick="copyPromoCode()">Copy Code</button>
+          </div>
+        </div>
+
+        <!-- Benefit 2: Localized Weather Alerts -->
+        <div class="benefit-card">
+          <div class="benefit-icon">📩</div>
+          <h3>Zip Code Weather Alerts</h3>
+          <p>Receive timely email alerts for DFW and Texas frost warnings, summer heat shade notifications, and optimal planting dates based on your zip code.</p>
+        </div>
+
+        <!-- Benefit 3: Participatory Science -->
+        <div class="benefit-card">
+          <div class="benefit-icon">🧪</div>
+          <h3>Community Trial Dashboard</h3>
+          <p>Participate in side-by-side backyard trials (e.g. Deep Stem Planting vs. Control). Submit your yields and view aggregate findings from 500+ Texas gardeners.</p>
+        </div>
+
+        <!-- Benefit 4: Monthly Vault Drops -->
+        <div class="benefit-card">
+          <div class="benefit-icon">📦</div>
+          <h3>Monthly 10-Entry Vault Drops</h3>
+          <p>Continuous research! 10 newly verified garden cheat codes added to your library every single month, keeping your garden knowledge perpetually updated.</p>
+        </div>
+
+        <!-- Benefit 5: Printable Cheat Sheets -->
+        <div class="benefit-card">
+          <div class="benefit-icon">📄</div>
+          <h3>Printable Quick Cheat Sheets</h3>
+          <p>Instant access to high-resolution, laminated-ready PDF cheat sheets for tomato spacing, pruning guidelines, and Texas pest prevention protocols.</p>
+        </div>
+
+        <!-- Benefit 6: Master Gardener Q&A -->
+        <div class="benefit-card">
+          <div class="benefit-icon">💬</div>
+          <h3>Priority Master Gardener Desk</h3>
+          <p>Submit custom old-time tips or local pest photos directly to our research team for peer-reviewed literature verification and verdict analysis.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- The Ancestral Field Library -->
+  <section class="vault-section" id="vault">
+    <div class="container">
+      <div class="section-header">
+        <span class="badge badge-accent">THE ANCESTRAL FIELD LIBRARY</span>
+        <h2>500 Science-Tested Garden Cheat Codes</h2>
+        <p>Organized like a vintage field journal card index. Explore sample unlocked entries below or unlock full member access.</p>
+      </div>
+
+      <!-- Paywall Counter Banner -->
+      <div class="paywall-counter-banner">
+        <div class="counter-text">
+          🔓 <strong>5 Sample Field Notes Unlocked</strong> for Public Preview &bull; 🔒 <strong>495 Field Notes Locked</strong> in the Member Vault
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openCheckoutModal('$39 Launch Pass')">
+          Unlock All 500 Notes ($39)
+        </button>
+      </div>
+
+      <!-- Category Index Tabs -->
+      <div class="category-pill-tabs" id="categoryPillTabs">
+        <button class="pill-tab active" onclick="setCategoryPill('all')">All Categories (500)</button>
+        <button class="pill-tab" onclick="setCategoryPill('Tomatoes')">🍅 Tomatoes (50)</button>
+        <button class="pill-tab" onclick="setCategoryPill('Peppers')">🌶️ Peppers (35)</button>
+        <button class="pill-tab" onclick="setCategoryPill('Squash & Cucumbers')">🥒 Squash (35)</button>
+        <button class="pill-tab" onclick="setCategoryPill('Beans & Legumes')">🫘 Beans (25)</button>
+        <button class="pill-tab" onclick="setCategoryPill('Okra & Southern Greens')">🌾 Okra (20)</button>
+        <button class="pill-tab" onclick="setCategoryPill('Soil & Amendments')">🪴 Soil & Amendments (100)</button>
+        <button class="pill-tab" onclick="setCategoryPill('Herbs & Aromatic Plants')">🌿 Herbs (50)</button>
+        <button class="pill-tab" onclick="setCategoryPill('Brassicas & Cole Crops')">🥦 Brassicas (50)</button>
+      </div>
+
+      <!-- Search Controls -->
+      <div class="vault-controls-bar">
+        <div class="search-wrap">
+          <input type="text" id="vaultSearch" class="vault-search-input" placeholder="Search 500 field notes (e.g. blossom rot, deep planting, eggshells, milk)..." oninput="filterVault()">
+        </div>
+
+        <div class="filter-group">
+          <select id="verdictFilter" class="filter-select" onchange="filterVault()">
+            <option value="all">All Verdict Stamps</option>
+            <option value="Supported">✅ Supported</option>
+            <option value="Myth">❌ Myth / Debunked</option>
+            <option value="Partial">⚠️ Partial</option>
+            <option value="Surprising Twist">🔄 Surprising Twist</option>
+            <option value="Extension Verified">🎓 Extension Verified</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Library Grid Container -->
+      <div id="vaultContainer" class="vault-container grid-mode">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- 7-Part Content Atom Drawer / Modal -->
+  <div class="modal-backdrop" id="entryModal">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeEntryModal()">✕</button>
+      <div class="modal-body" id="modalBody">
+        <!-- Content Atom Rendered Dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- High-Converting Plain-English Paywall Gate Modal -->
+  <div class="modal-backdrop" id="paywallModal">
+    <div class="modal-card modal-sm paywall-gate-card">
+      <button class="modal-close" onclick="closePaywallModal()">✕</button>
+      <div class="paywall-lock-icon">🔒</div>
+      <span class="badge badge-hero">LOCKED FIELD NOTE</span>
+      <h3 class="paywall-hero-title" id="paywallModalTitle">Unlock All 500 Science Cheat Codes</h3>
+      <p class="paywall-hero-desc">You've reached a locked field note in the Ancestral Library. Unlock instant full access to all 500 garden cheat codes, research proof, and member perks.</p>
+
+      <div class="paywall-value-stack">
+        <div>✓ Instant access to all 500 science-tested garden cheat codes</div>
+        <div>✓ Clear step-by-step instructions for every old-time gardening tip</div>
+        <div>✓ Proof from real university studies & agricultural research</div>
+        <div>✓ Exclusive 25% discount code for non-GMO seeds (CHEATCODE25)</div>
+        <div>✓ Local Texas frost & summer heat alerts sent to your inbox</div>
+      </div>
+
+      <button class="btn btn-primary btn-block btn-lg" onclick="openCheckoutModal('$39 Launch Pass')">
+        Unlock Full Vault Pass ($39)
+      </button>
+    </div>
+  </div>
+
+  <!-- Pricing Pass Section -->
+  <section class="pricing-section" id="pricing">
+    <div class="container">
+      <div class="section-header">
+        <span class="badge badge-accent">FOUNDING MEMBER ACCESS</span>
+        <h2>Unlock All 500 Science-Verified Cheat Codes</h2>
+        <p>Instant lifetime vault access or annual membership with regional weather alerts and exclusive member discounts.</p>
+      </div>
+
+      <div class="pricing-grid">
+        <!-- Card 1: Launch Pass -->
+        <div class="pricing-card">
+          <div class="pricing-header">
+            <h3>$39 Launch Pass</h3>
+            <span class="pricing-subtitle">One-Time Payment • Lifetime Access</span>
+            <div class="price-amount">$39 <span class="strike">$49</span></div>
+          </div>
+          <ul class="pricing-features">
+            <li>✓ Full access to all 500 science-tested garden cheat codes</li>
+            <li>✓ Step-by-step instructions & exact garden action plans</li>
+            <li>✓ Proof from official university & extension research studies</li>
+            <li>✓ Popular crop guides (Tomatoes, Peppers, Squash, Soil)</li>
+            <li>✓ Exclusive 25% discount code for seeds (CHEATCODE25)</li>
+            <li>✓ Bilingual English & Spanish guides</li>
+          </ul>
+          <button class="btn btn-primary btn-block" onclick="openCheckoutModal('$39 Launch Pass')">
+            Get Instant Vault Access ($39)
+          </button>
+        </div>
+
+        <!-- Card 2: Founding Member (Recommended) -->
+        <div class="pricing-card featured">
+          <div class="featured-badge">MOST POPULAR IN TEXAS</div>
+          <div class="pricing-header">
+            <h3>$59 Founding Member</h3>
+            <span class="pricing-subtitle">Annual Pass • Full Community Access</span>
+            <div class="price-amount">$59<span class="period">/year</span></div>
+          </div>
+          <ul class="pricing-features">
+            <li>✓ Everything in Launch Pass +</li>
+            <li>✓ <strong>Localized Zip Code Weather Alerts</strong> (Texas frost & heat)</li>
+            <li>✓ <strong>Monthly 10-Entry Vault Drops</strong> (Continuous research)</li>
+            <li>✓ <strong>Community Backyard Trial Dashboard</strong> & tracking</li>
+            <li>✓ Priority Master Gardener Desk for custom claim reviews</li>
+            <li>✓ Priority seed trial requests & heirloom giveaways</li>
+          </ul>
+          <button class="btn btn-primary btn-block" onclick="openCheckoutModal('$39 Founding Member')">
+            Become a Founding Member ($59)
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Email Capture / Beehiiv Section -->
+  <section class="email-section">
+    <div class="container email-box">
+      <div class="email-content">
+        <h2>Join 12,000+ Texas Gardeners Before It Was Written</h2>
+        <p>Get weekly Texas planting alerts, science myth-busters, and free sample Vault entries delivered to your inbox.</p>
+        
+        <form class="email-form" id="beehiivForm" onsubmit="handleEmailSubmit(event)">
+          <input type="email" id="emailInput" class="email-input" placeholder="Enter your email address..." required>
+          <button type="submit" class="btn btn-primary">Subscribe Free</button>
+        </form>
+        <span class="email-subtext">Zero spam. Unsubscribe anytime. Powered by Beehiiv Scale.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <span class="brand-name">GARDEN CHEAT CODES</span>
+        <p class="footer-copy">© 2026 Garden Cheat Codes Research Lab. Built for Texas & Gulf South backyard gardeners. Domain: <strong>GardenCheatCodes.org</strong></p>
+      </div>
+      <div class="footer-links">
+        <a href="#vault">Ancestral Library</a>
+        <a href="#benefits">Member Perks</a>
+        <a href="#pricing">Pricing</a>
+        <a href="llms.txt">AI Search Data (llms.txt)</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Stripe Checkout Modal Simulation -->
+  <div class="modal-backdrop" id="checkoutModal">
+    <div class="modal-card modal-sm">
+      <button class="modal-close" onclick="closeCheckoutModal()">✕</button>
+      <div class="modal-body text-center">
+        <span class="badge badge-accent">STRIPE CHECKOUT SIMULATION</span>
+        <h3 id="checkoutPlanTitle">Get Vault Pass</h3>
+        <p>You are about to unlock all 500 Science-Verified Entries on <strong>GardenCheatCodes.org</strong>.</p>
+
+        <div class="stripe-box">
+          <div class="stripe-row">
+            <span>Product:</span>
+            <strong id="checkoutProductName">Launch Pass</strong>
+          </div>
+          <div class="stripe-row">
+            <span>Total Due:</span>
+            <strong id="checkoutPrice">$39.00</strong>
+          </div>
+          <div class="stripe-row">
+            <span>Includes Member Promo:</span>
+            <strong style="color: var(--color-stamp-green);">CHEATCODE25 (25% Off SeedsNow)</strong>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-block btn-lg" onclick="simulateSuccessfulPayment()">
+          🔒 Complete Purchase via Stripe
+        </button>
+        <p class="modal-foot-note">Includes instant email access delivery via Beehiiv and member perks.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

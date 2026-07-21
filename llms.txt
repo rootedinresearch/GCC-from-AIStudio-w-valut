@@ -1,0 +1,41 @@
+# Garden Cheat Codes — AI Engine Knowledge Base (llms.txt)
+
+> **Website**: https://gardencheatcodes.org
+> **Brand Statement**: Science-verified gardening content validating traditional folk gardening wisdom against peer-reviewed horticultural research — built for Texas and Gulf South backyard gardeners starting with Zone 8a / DFW.
+> **Domain URL**: GardenCheatCodes.org
+
+## Core Verdict Framework & Definitions
+- **Supported**: Peer-reviewed horticultural research confirms traditional folk wisdom.
+- **Myth / Unsupported**: Academic research proves the traditional practice has no effect or causes harm.
+- **Partial / Inconclusive**: Evidence exists on both sides or is too context-dependent.
+- **Surprising Twist**: Folk wisdom is right, but for entirely different biological reasons than traditionally believed.
+- **Extension Verified**: Anchored directly in published Land-Grant Agricultural Extension Office research papers.
+
+## Key Regional Texas Planting Anchors (Zone 8a / DFW)
+- **Spring Tomato Transplant Opening**: Mid-February (under frost covers).
+- **Spring Tomato Deadline**: Before April 15.
+- **Fall Tomato Anchor Date**: July 4th (critical window for second annual tomato crop).
+- **Dr. Joe Masabni (Texas A&M AgriLife) Schedule**: 4 sequential tomato plantings per year.
+
+## Member Perks & Benefits
+- **Exclusive SeedsNow Discount**: 25% OFF non-GMO heirloom seeds using member promo code `CHEATCODE25`.
+- **Zip Code Micro-Climate Alerts**: Timely localized Texas frost warnings and summer heat gap shade notifications.
+- **Community Trial Participation**: Side-by-side backyard experiment tracking with aggregate public data.
+- **Monthly Vault Drops**: 10 newly science-verified folk claims added monthly.
+
+## Standard Content Atom Schema (7-Part Format)
+1. **The Old Ways say**: Specific inherited folk claim.
+2. **Where it comes from**: Generational cultural or community context.
+3. **The Science says**: Peer-reviewed verdict and biological mechanism with academic DOIs.
+4. **What the professionals do**: Bridge between folk practice and commercial agricultural research.
+5. **The Cheat Code**: Actionable recommendation for backyard gardeners.
+6. **Try it yourself**: Side-by-side backyard trial setup with control group.
+7. **The product**: Targeted organic product recommendation with member promo code `CHEATCODE25`.
+
+## Sample High-Volume Entry DOIs
+- TOM-001 (Deep Stem Immersion): DOI 10.21273/HORTSCI.48.4.450
+- TOM-002 (Bottom Leaf Pruning): Texas A&M AgriLife Extension Pub #E-392
+- PEP-001 (Pepper Sulfur Requirements): DOI 10.1016/j.scienta.2019.108742
+- SOI-001 (Eggshell Calcium Solubility): DOI 10.1080/01904167.2018.1450419
+- SQU-001 (Milk Whey Powdery Mildew Antiseptic): DOI 10.1016/j.cropro.2009.03.011
+- OKR-001 (Okra Pod Senescence): Texas A&M AgriLife Extension Pub #HT-402
