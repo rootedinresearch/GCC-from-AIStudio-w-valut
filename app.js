@@ -1,5 +1,5 @@
 /* ==========================================================================
-   GARDEN CHEAT CODES — ANCESTRAL LIBRARY ENGINE & MULTI-THEME ENGINE (v4.0)
+   GARDEN CHEAT CODES — MINIMALIST FIELD GUIDE ENGINE (v4.5)
    ========================================================================== */
 
 let vaultEntries = [];
@@ -7,21 +7,6 @@ let currentLang = 'EN';
 let currentCategory = 'all';
 let currentVerdict = 'all';
 let searchQuery = '';
-
-// Design Taste Theme Switcher Handler
-function setDesignTheme(themeClass) {
-  document.body.className = themeClass;
-  
-  // Update button active state
-  document.querySelectorAll('.switcher-btn').forEach(btn => {
-    btn.classList.remove('active');
-    if (btn.getAttribute('onclick').includes(themeClass)) {
-      btn.classList.add('active');
-    }
-  });
-
-  console.log(`Design taste switched to: ${themeClass}`);
-}
 
 // Transitional Showcase Vegetables Data
 const SHOWCASE_ITEMS = [
@@ -355,7 +340,7 @@ function openEntryModal(entryId) {
         <p style="font-size: 17px; line-height: 1.6;">${displayScience}</p>
         
         <div class="doi-verify-box">
-          <span style="font-size: 11px; font-family: var(--font-sans); font-weight: 700; color: var(--color-ink-muted);">VERIFIED RESEARCH CITATION:</span>
+          <span style="font-size: 11px; font-family: var(--font-mono); font-weight: 700; color: var(--color-ink-muted);">VERIFIED RESEARCH CITATION:</span>
           <strong>${entry.citation}</strong>
           <a href="${doiUrl}" target="_blank" class="doi-verify-btn">
             🔬 Read Official University Study Paper ↗
@@ -365,7 +350,7 @@ function openEntryModal(entryId) {
 
       ${entry.svg_diagram ? `
       <div class="atom-svg-wrap">
-        <h4 style="margin-bottom: 8px; font-size: 11px; font-family: var(--font-sans); color: var(--color-ink-muted);">VISUAL GARDEN DIAGRAM</h4>
+        <h4 style="margin-bottom: 8px; font-size: 11px; font-family: var(--font-mono); color: var(--color-ink-muted);">VISUAL GARDEN DIAGRAM</h4>
         ${entry.svg_diagram}
       </div>` : ''}
 
@@ -374,13 +359,13 @@ function openEntryModal(entryId) {
         <p>${entry.professional_practice}</p>
       </div>
 
-      <div class="atom-section" style="border-left-color: #1c1917; background-color: var(--color-paper-base); border: 2px solid #1c1917;">
-        <h4 style="color: #1c1917;">${t.atomCheat}</h4>
+      <div class="atom-section" style="border-left-color: #09090b; background-color: var(--color-paper-base); border: 1px solid #e4e4e7;">
+        <h4 style="color: #09090b;">${t.atomCheat}</h4>
         <p style="font-size: 17px; font-weight: 500;">${entry.cheat_code}</p>
       </div>
 
-      <div class="atom-section" style="border-left-color: #1e40af; background-color: var(--color-stamp-green-bg);">
-        <h4 style="color: #1e40af;">${t.atomTrial}</h4>
+      <div class="atom-section" style="border-left-color: #15803d; background-color: var(--color-stamp-green-bg);">
+        <h4 style="color: #15803d;">${t.atomTrial}</h4>
         <p>${entry.try_it_yourself}</p>
       </div>
 
