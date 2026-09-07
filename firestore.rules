@@ -1,0 +1,111 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - uid: string (required) - The unique user ID from Firebase Auth.
+    //   - email: string (required, email format) - The user's email address.
+    //   - zipCode: string (optional) - The user's zip code.
+    //   - isSubscribed: boolean (required) - Whether the user has an active subscription.
+    //   - createdAt: number (required) - The timestamp when the profile was created.
+    //
+    // Collection: lab_notes
+    // Document ID: {noteId}
+    // Fields:
+    //   - id: string (required) - The unique ID of the trial.
+    //   - topic: string (required) - The gardening topic being tested.
+    //   - hypothesis: string (required) - The hypothesis being tested.
+    //   - userResults: list (optional) - Array of objects with userId and result.
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        ((request.auth.token.email == "greg.hladik@gmail.com" && request.auth.token.email_verified == true) ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUserProfile(data) {
+      return hasOnlyAllowedFields(['uid', 'email', 'zipCode', 'isSubscribed', 'createdAt', 'role', 'savedCodes', 'triedCodes']) &&
+             data.uid == request.auth.uid &&
+             isValidEmail(data.email) &&
+             data.isSubscribed is bool &&
+             data.createdAt is number &&
+             (!('savedCodes' in data) || data.savedCodes is list) &&
+             (!('triedCodes' in data) || data.triedCodes is list);
+    }
+
+    function isValidLabNote(data) {
+      return hasOnlyAllowedFields(['id', 'topic', 'hypothesis', 'userResults']) &&
+             data.id is string && data.id.size() > 0 &&
+             data.topic is string && data.topic.size() > 0 &&
+             data.hypothesis is string && data.hypothesis.size() > 0;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      // Users can only read their own profile. Admins can read all.
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Users can create their own profile.
+      allow create: if isOwner(userId) && isValidUserProfile(request.resource.data) && 
+                    (!('role' in request.resource.data) || request.resource.data.role == 'user');
+      
+      // Users can update their own profile, but cannot change their role unless they are an admin.
+      allow update: if isOwner(userId) && isValidUserProfile(request.resource.data) && 
+                    (request.resource.data.role == resource.data.role || isAdmin());
+                    
+      // Only admins can delete profiles.
+      allow delete: if isAdmin();
+    }
+
+    match /lab_notes/{noteId} {
+      // Everyone can read lab notes.
+      allow read: if true;
+      
+      // Only admins can create or delete lab notes.
+      allow create, delete: if isAdmin() && isValidLabNote(request.resource.data);
+      
+      // Members can update lab notes to add their results.
+      allow update: if isAuthenticated() && isValidLabNote(request.resource.data);
+    }
+
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

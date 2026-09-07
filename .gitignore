@@ -1,0 +1,6 @@
+node_modules
+dist
+.env
+.env.local
+.DS_Store
+google_sheet_research_latest.json

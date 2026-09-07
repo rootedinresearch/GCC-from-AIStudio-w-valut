@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Cormorant Garamond", serif;
+  --font-sans: "Inter", sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+
+  --color-primary: #5A7D40;
+  --color-accent: #E1EAD8;
+  --color-paper: #FDFCF8;
+  --color-ink: #1A1A1A;
+
+  @keyframes marquee-vertical {
+    from { transform: translateY(0); }
+    to { transform: translateY(-50%); }
+  }
+
+  --animate-marquee-vertical: marquee-vertical 20s linear infinite;
+}
+
+@layer base {
+  body {
+    @apply font-serif bg-paper text-ink antialiased;
+  }
+
+  /* Improve focus visibility for keyboard navigation */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-primary;
+  }
+
+  /* Ensure buttons and links have a pointer cursor */
+  button, a {
+    @apply cursor-pointer;
+  }
+
+  /* Hide scrollbar but allow scrolling */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

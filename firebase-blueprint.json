@@ -1,0 +1,48 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user authentication and subscription status.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique user ID from Firebase Auth." },
+        "email": { "type": "string", "format": "email", "description": "The user's email address." },
+        "zipCode": { "type": "string", "description": "The user's zip code for microclimate tracking." },
+        "isSubscribed": { "type": "boolean", "description": "Whether the user has an active annual subscription." },
+        "createdAt": { "type": "number", "description": "The timestamp when the profile was created." }
+      },
+      "required": ["uid", "email", "isSubscribed", "createdAt"]
+    },
+    "LabNote": {
+      "title": "Lab Note",
+      "description": "Community-submitted experimental results for gardening trials.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique ID of the trial." },
+        "topic": { "type": "string", "description": "The gardening topic being tested." },
+        "hypothesis": { "type": "string", "description": "The hypothesis being tested." },
+        "userResults": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "userId": { "type": "string" },
+              "result": { "type": "string" }
+            }
+          }
+        }
+      },
+      "required": ["id", "topic", "hypothesis"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles and subscription data."
+    },
+    "/lab_notes/{noteId}": {
+      "schema": "LabNote",
+      "description": "Community lab notes and trial results."
+    }
+  }
+}

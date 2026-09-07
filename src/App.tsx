@@ -1,0 +1,1665 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useState, useEffect, Component, ReactNode } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  Sprout, 
+  Leaf, 
+  MapPin, 
+  Mail, 
+  ChevronRight, 
+  Quote, 
+  BookOpen, 
+  CheckCircle2,
+  ArrowRight,
+  Sun,
+  Droplets,
+  Zap,
+  ThermometerSun,
+  Lock,
+  ShieldCheck,
+  LayoutDashboard,
+  LogOut,
+  Beaker,
+  AlertTriangle,
+  ExternalLink,
+  CreditCard,
+  DollarSign,
+  Users,
+  TrendingUp,
+  Bookmark,
+  BookmarkCheck,
+  PlayCircle,
+  X,
+  Globe,
+  Eye,
+  EyeOff
+} from 'lucide-react';
+import { auth, signInWithGoogle, logout, db } from './firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { doc, getDoc, setDoc, collection, addDoc, updateDoc, arrayUnion, onSnapshot } from 'firebase/firestore';
+import { GRANDMA_BEATRICE, DR_GREG, ALL_CHEAT_CODES } from './constants';
+import { UserProfile, LabNote, CheatCode } from './types';
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId: string | undefined;
+    email: string | null | undefined;
+    emailVerified: boolean | undefined;
+    isAnonymous: boolean | undefined;
+    tenantId: string | null | undefined;
+    providerInfo: {
+      providerId: string;
+      displayName: string | null;
+      email: string | null;
+      photoUrl: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData.map(provider => ({
+        providerId: provider.providerId,
+        displayName: provider.displayName,
+        email: provider.email,
+        photoUrl: provider.photoURL
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      let errorMessage = "Something went wrong.";
+      try {
+        const parsed = JSON.parse(this.state.error?.message || "");
+        if (parsed.error && parsed.operationType) {
+          errorMessage = `Firestore ${parsed.operationType} error: ${parsed.error}`;
+        }
+      } catch (e) {
+        errorMessage = this.state.error?.message || errorMessage;
+      }
+
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-paper p-8">
+          <div className="bg-white p-12 rounded-[40px] shadow-2xl border-2 border-red-100 max-w-2xl text-center">
+            <AlertTriangle className="w-20 h-20 text-red-500 mx-auto mb-8" />
+            <h2 className="text-4xl font-bold mb-4 text-ink">Oops! A Garden Glitch.</h2>
+            <p className="text-xl text-ink/80 mb-8 font-sans">{errorMessage}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-primary text-white px-8 py-4 rounded-full font-bold font-sans uppercase tracking-widest"
+            >
+              Refresh the Patch
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+type View = 'public' | 'members' | 'lab' | 'tomato-codes' | 'opt-in' | 'email-sent';
+
+const Skeleton = ({ className }: { className?: string }) => (
+  <div className={`animate-pulse bg-accent/20 rounded-lg ${className}`} />
+);
+
+const CheatCodeSkeleton = () => (
+  <div className="py-8 md:py-16 px-4 md:px-8 max-w-6xl mx-auto">
+    <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 md:mb-16 gap-6 md:gap-8">
+      <div className="space-y-4 w-full md:w-1/2">
+        <Skeleton className="h-12 md:h-16 w-3/4" />
+        <Skeleton className="h-6 w-full" />
+        <Skeleton className="h-6 w-5/6" />
+      </div>
+      <Skeleton className="h-16 w-full md:w-48 rounded-2xl" />
+    </div>
+    
+    <div className="flex gap-4 mb-8">
+      <Skeleton className="h-10 w-24 rounded-full" />
+      <Skeleton className="h-10 w-24 rounded-full" />
+      <Skeleton className="h-10 w-24 rounded-full" />
+    </div>
+
+    <div className="grid lg:grid-cols-3 gap-8">
+      <div className="lg:col-span-1 space-y-3">
+        {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-16 w-full rounded-2xl" />)}
+      </div>
+      <div className="lg:col-span-2 bg-white p-6 md:p-10 rounded-[32px] border border-accent space-y-8">
+        <div className="space-y-4">
+          <Skeleton className="h-6 w-24 rounded-full" />
+          <Skeleton className="h-10 md:h-12 w-3/4" />
+        </div>
+        <div className="flex gap-3">
+          <Skeleton className="h-10 w-24 rounded-full" />
+          <Skeleton className="h-10 w-24 rounded-full" />
+        </div>
+        <div className="grid md:grid-cols-2 gap-8">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="w-10 h-10 rounded-full" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+            <Skeleton className="h-20 w-full" />
+          </div>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="w-10 h-10 rounded-full" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+            <Skeleton className="h-20 w-full" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+export default function App() {
+  const [view, setView] = useState<View>('public');
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isSwitching, setIsSwitching] = useState(false);
+  const [activeCode, setActiveCode] = useState(0);
+  const [waitlistJoined, setWaitlistJoined] = useState(false);
+  const [localCheatCodes, setLocalCheatCodes] = useState<CheatCode[]>(ALL_CHEAT_CODES);
+  
+  // Temporary Bypass Mode: permits inspecting all locked codes and vault views without login
+  const [isBypassMode, setIsBypassMode] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('gcc_preview_bypass') === 'true' || 
+           window.location.search.includes('preview=bypass') || 
+           window.location.search.includes('bypass=true');
+  });
+
+  const toggleBypassMode = () => {
+    setIsBypassMode(prev => {
+      const next = !prev;
+      localStorage.setItem('gcc_preview_bypass', String(next));
+      return next;
+    });
+  };
+
+  // Modular Microclimate: 'dfw' for Texas Zone 8a/8b, 'national' for nationwide expansion
+  const [microclimateMode, setMicroclimateMode] = useState<'dfw' | 'national'>('dfw');
+  const [vaultSearchQuery, setVaultSearchQuery] = useState('');
+
+  const groupedCodes = localCheatCodes.reduce((acc, code) => {
+    if (!acc[code.vegetable]) acc[code.vegetable] = [];
+    acc[code.vegetable].push(code);
+    return acc;
+  }, {} as Record<string, CheatCode[]>);
+
+  const vegetables = Object.keys(groupedCodes);
+  const [activeVeg, setActiveVeg] = useState(vegetables[0]);
+
+  const switchCode = (index: number) => {
+    setIsSwitching(true);
+    setActiveCode(index);
+    setTimeout(() => setIsSwitching(false), 300);
+  };
+
+  const switchVeg = (veg: string) => {
+    setIsSwitching(true);
+    setActiveVeg(veg);
+    setActiveCode(0);
+    setTimeout(() => setIsSwitching(false), 300);
+  };
+
+  // Auth Listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
+      if (firebaseUser) {
+        const path = `users/${firebaseUser.uid}`;
+        try {
+          const docRef = doc(db, 'users', firebaseUser.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            setProfile(docSnap.data() as UserProfile);
+          } else {
+            const newProfile: UserProfile = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              zipCode: '',
+              isSubscribed: false,
+              savedCodes: [],
+              triedCodes: [],
+              createdAt: Date.now()
+            };
+            await setDoc(docRef, newProfile);
+            setProfile(newProfile);
+          }
+        } catch (error) {
+          handleFirestoreError(error, OperationType.GET, path);
+        }
+      } else {
+        setProfile(null);
+      }
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Check for Stripe payment redirect success
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment');
+    
+    if ((paymentStatus === 'success' || paymentStatus === 'mock_success') && user) {
+      const upgradeUser = async () => {
+        try {
+          const docRef = doc(db, 'users', user.uid);
+          await setDoc(docRef, { isSubscribed: true }, { merge: true });
+          setProfile(prev => prev ? { ...prev, isSubscribed: true } : null);
+          setActiveVeg('Tomato');
+          setActiveCode(0);
+          setView('members');
+          
+          // Clean up URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } catch (error) {
+          console.error("Error unlocking vault:", error);
+        }
+      };
+      upgradeUser();
+    }
+  }, [user]);
+
+  const handleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+      // Regular sign-in doesn't force the opt-in flow unless we want to,
+      // but let's keep it simple and just sign them in.
+    } catch (error) {
+      console.error("Auth error:", error);
+    }
+  };
+
+  const handleUnlockVault = async () => {
+    try {
+      const user = await signInWithGoogle();
+      if (user) {
+        setView('members');
+      }
+    } catch (error) {
+      console.error("Auth error:", error);
+    }
+  };
+
+  const handleLeadGen = async () => {
+    try {
+      const user = await signInWithGoogle();
+      
+      if (user && user.email) {
+        // If they already have an account and have used it, maybe they shouldn't see opt-in,
+        // but let's stick to the flow the user requested.
+        setView('opt-in');
+      }
+    } catch (error) {
+      console.error("Auth error:", error);
+    }
+  };
+
+  const toggleSaveCode = async (codeId: string) => {
+    if (!user || !profile) return;
+    const isSaved = profile?.savedCodes?.includes(codeId);
+    const newSaved = isSaved 
+      ? profile?.savedCodes?.filter(id => id !== codeId) || []
+      : [...(profile?.savedCodes || []), codeId];
+    
+    const path = `users/${user.uid}`;
+    try {
+      const docRef = doc(db, 'users', user.uid);
+      await updateDoc(docRef, { savedCodes: newSaved });
+      setProfile({ ...profile, savedCodes: newSaved });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, path);
+    }
+  };
+
+  const toggleTriedCode = async (codeId: string) => {
+    if (!user || !profile) return;
+    const hasTried = profile?.triedCodes?.includes(codeId);
+    if (hasTried) return; // Only allow marking as tried once
+
+    const newTried = [...(profile?.triedCodes || []), codeId];
+    const path = `users/${user.uid}`;
+    try {
+      const docRef = doc(db, 'users', user.uid);
+      await updateDoc(docRef, { triedCodes: newTried });
+      setProfile({ ...profile, triedCodes: newTried });
+      
+      // Increment global count (mock for now as we don't have a shared cheat_codes collection, 
+      // but let's update local state to show immediate feedback)
+      setLocalCheatCodes(prev => prev.map(c => c.id === codeId ? { ...c, triedCount: c.triedCount + 1 } : c));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, path);
+    }
+  };
+
+  const handleSubscribe = async () => {
+    let currentUser = user;
+    if (!currentUser) {
+      try {
+        currentUser = await signInWithGoogle();
+      } catch (error) {
+        console.error("Auth error:", error);
+        return;
+      }
+    }
+    
+    if (currentUser) {
+      try {
+        const response = await fetch('/api/create-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: currentUser.email })
+        });
+        const data = await response.json();
+        
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          console.error("No checkout URL returned");
+        }
+      } catch (error) {
+        console.error("Failed to start checkout:", error);
+      }
+    }
+  };
+
+  const handleLabSubmit = async (trialId: string, result: string) => {
+    if (!user || !result) return;
+    const path = `lab_notes/${trialId}`;
+    try {
+      const docRef = doc(db, 'lab_notes', trialId);
+      await updateDoc(docRef, {
+        userResults: arrayUnion({ userId: user.uid, result: result })
+      });
+      alert("Result logged in the Laboratory Notebook!");
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, path);
+    }
+  };
+
+  if (loading) return <div className="min-h-screen bg-paper"><CheatCodeSkeleton /></div>;
+
+  const Navigation = () => (
+    <nav aria-label="Main Navigation" className="border-b border-accent py-4 px-4 md:px-8 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-50">
+      <button 
+        className="flex items-center gap-2" 
+        onClick={() => setView('public')}
+        
+      >
+        <Sprout className="text-primary w-6 h-6 md:w-8 md:h-8" aria-hidden="true" />
+        <span className="text-lg md:text-2xl font-bold tracking-tight text-ink">GardenCheatCodes.org</span>
+      </button>
+      <div className="flex items-center gap-2 md:gap-6">
+        <div className="hidden lg:flex gap-6 text-xs uppercase tracking-widest font-sans font-semibold text-primary">
+          <button onClick={() => setView('public')} className="hover:text-ink transition-colors">Public</button>
+          <button onClick={() => { setActiveVeg('Tomato'); setActiveCode(0); setView('tomato-codes'); }} className="hover:text-ink transition-colors">Free Tomato Codes</button>
+          {(profile?.isSubscribed || isBypassMode) && (
+            <button onClick={() => { setActiveVeg('Tomato'); setActiveCode(0); setView('members'); }} className="hover:text-ink transition-colors flex items-center gap-1.5">
+              <span>The Vault</span>
+              {isBypassMode && !profile?.isSubscribed && <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full">Bypass</span>}
+            </button>
+          )}
+          <button onClick={() => setView('lab')} className="hover:text-ink transition-colors">Lab Notebook</button>
+        </div>
+        
+        {/* Temporary Preview Bypass Mode Button */}
+        <button
+          onClick={toggleBypassMode}
+          className={`px-3 py-1.5 rounded-full text-xs font-bold font-sans uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+            isBypassMode 
+              ? 'bg-amber-100 text-amber-900 border border-amber-300 shadow-sm' 
+              : 'bg-accent/40 text-primary border border-accent hover:bg-accent'
+          }`}
+          title="Toggle Preview Bypass Mode (Inspect all locked codes without logging in)"
+        >
+          {isBypassMode ? (
+            <>
+              <Eye className="w-3.5 h-3.5 text-amber-700" />
+              <span>Bypass: ON</span>
+            </>
+          ) : (
+            <>
+              <EyeOff className="w-3.5 h-3.5 opacity-60" />
+              <span>Bypass: OFF</span>
+            </>
+          )}
+        </button>
+
+        {user ? (
+          <div className="flex items-center gap-2 md:gap-4">
+            <span className="text-xs md:text-sm font-sans font-bold text-ink/80 hidden sm:block">{user.email}</span>
+            <button 
+              onClick={() => logout()} 
+              className="p-2 hover:bg-accent rounded-full transition-colors"
+              aria-label="Log Out"
+            >
+              <LogOut className="w-4 h-4 md:w-5 md:h-5 text-primary" aria-hidden="true" />
+            </button>
+          </div>
+        ) : (
+          <button onClick={handleSignIn} className="bg-primary text-white px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-bold font-sans uppercase tracking-widest">Sign In</button>
+        )}
+      </div>
+    </nav>
+  );
+
+  const MobileNav = () => (
+    <nav aria-label="Mobile Navigation" className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-accent px-6 py-3 flex justify-between items-center z-50 pb-safe">
+      <button 
+        onClick={() => setView('public')}
+        className={`flex flex-col items-center gap-1 ${view === 'public' ? 'text-primary' : 'text-ink/70'}`}
+        aria-current={view === 'public' ? 'page' : undefined}
+      >
+        <LayoutDashboard className="w-5 h-5" aria-hidden="true" />
+        <span className="text-xs font-bold uppercase tracking-tighter">Home</span>
+      </button>
+      <button 
+        onClick={() => { setActiveVeg('Tomato'); setActiveCode(0); setView('tomato-codes'); }}
+        className={`flex flex-col items-center gap-1 ${view === 'tomato-codes' ? 'text-primary' : 'text-ink/70'}`}
+        aria-current={view === 'tomato-codes' ? 'page' : undefined}
+      >
+        <BookOpen className="w-5 h-5" aria-hidden="true" />
+        <span className="text-xs font-bold uppercase tracking-tighter">Free</span>
+      </button>
+      {(profile?.isSubscribed || isBypassMode) && (
+        <button 
+          onClick={() => { setActiveVeg('Tomato'); setActiveCode(0); setView('members'); }}
+          className={`flex flex-col items-center gap-1 ${view === 'members' ? 'text-primary' : 'text-ink/70'}`}
+          aria-current={view === 'members' ? 'page' : undefined}
+        >
+          <Lock className="w-5 h-5" aria-hidden="true" />
+          <span className="text-xs font-bold uppercase tracking-tighter">Vault</span>
+        </button>
+      )}
+      <button 
+        onClick={() => setView('lab')}
+        className={`flex flex-col items-center gap-1 ${view === 'lab' ? 'text-primary' : 'text-ink/70'}`}
+        
+        aria-current={view === 'lab' ? 'page' : undefined}
+      >
+        <Beaker className="w-5 h-5" aria-hidden="true" />
+        <span className="text-xs font-bold uppercase tracking-tighter">Lab</span>
+      </button>
+    </nav>
+  );
+
+  const handleConsent = async () => {
+    if (user && user.email) {
+      try {
+        await fetch('/api/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: user.email })
+        });
+      } catch (syncError) {
+        console.error("Failed to sync with Beehiiv:", syncError);
+      }
+      setView('email-sent');
+    }
+  };
+
+  const OptInView = () => (
+    <div className="py-24 md:py-32 px-4 max-w-2xl mx-auto text-center animate-in fade-in duration-500">
+      <div className="w-20 h-20 bg-accent rounded-full flex items-center justify-center mx-auto mb-8">
+        <Mail className="w-10 h-10 text-primary" />
+      </div>
+      <h2 className="text-4xl md:text-5xl font-light mb-6 text-ink">One Last Step</h2>
+      <p className="text-lg md:text-xl text-ink/80 mb-12 font-sans leading-relaxed">
+        To send you the free Tomato Codes, we need your permission to email you. 
+        We respect your inbox and comply with all anti-spam regulations. 
+        You can unsubscribe at any time.
+      </p>
+      
+      <button 
+        onClick={handleConsent}
+        className="w-full bg-primary text-white py-5 rounded-full font-bold font-sans text-lg md:text-xl hover:bg-primary/90 transition-all mb-6 shadow-xl shadow-primary/20 hover:scale-[1.02]"
+      >
+        I Consent - Send Me the Codes
+      </button>
+      <button
+        onClick={() => setView('public')}
+        className="text-ink/60 hover:text-ink font-sans underline"
+      >
+        No thanks, take me back
+      </button>
+    </div>
+  );
+
+  const EmailSentView = () => {
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        setView('members');
+      }, 5000); // redirect after 5 seconds
+
+      return () => clearTimeout(timer);
+    }, []);
+
+    return (
+      <div className="py-24 md:py-32 px-4 max-w-2xl mx-auto text-center animate-in fade-in duration-500">
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-8">
+          <CheckCircle2 className="w-10 h-10 text-green-600" />
+        </div>
+        <h2 className="text-4xl md:text-5xl font-bold mb-6 text-ink leading-tight">Codes Are In Your Inbox!</h2>
+        <p className="text-lg md:text-xl text-ink/80 mb-12 font-sans leading-relaxed">
+          We've just sent the free Tomato Cheat Codes to <strong>{user?.email}</strong>. 
+          They should arrive in the next 2-3 minutes.
+        </p>
+
+        <div className="bg-accent/30 p-8 md:p-10 rounded-[32px] border border-accent relative overflow-hidden text-left">
+          <div className="absolute top-0 right-0 p-8 opacity-10">
+            <Lock className="w-32 h-32 text-primary" />
+          </div>
+          <p className="text-sm font-bold uppercase tracking-widest text-primary mb-2">Up Next...</p>
+          <h3 className="text-2xl font-bold text-ink mb-4 relative z-10">Preparing The Vault</h3>
+          <p className="text-base text-ink/80 mb-8 font-sans relative z-10">
+            Redirecting you to The Vault, where you can unlock all 500+ master gardener secrets for your exact microclimate.
+          </p>
+          
+          <button 
+            onClick={() => setView('members')}
+            className="w-full sm:w-auto px-8 py-4 bg-white border-2 border-primary text-primary rounded-full font-bold hover:bg-primary hover:text-white transition-all shadow-md relative z-10 flex items-center justify-center gap-3"
+          >
+            Take Me to The Vault Now <ArrowRight className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const PublicView = () => (
+    <div className="animate-in fade-in duration-700">
+      <header className="py-12 md:py-24 px-4 md:px-8 max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 md:gap-16 items-center">
+        <div className="order-2 lg:order-1">
+          <div className="inline-block px-4 py-1 rounded-full bg-primary text-white text-xs md:text-sm font-bold uppercase tracking-widest mb-4 md:mb-6">
+            ANCESTRAL WISDOM MEETS DATA SCIENCE
+          </div>
+          <h1 className="text-5xl md:text-7xl font-light leading-[0.9] mb-6 md:mb-8 text-ink">
+            Unlock the <span className="italic text-primary">Cheat Codes</span> to Your Garden.
+          </h1>
+          <p className="text-lg md:text-xl text-ink/80 leading-relaxed mb-8 md:mb-10 font-sans max-w-lg">
+            Stop guessing. Start growing. We validate generations of inherited gardening lore against peer-reviewed horticultural research to give you the ultimate harvest.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center gap-6 mt-10">
+            <button 
+              onClick={handleLeadGen}
+              className="group relative bg-primary text-white px-8 md:px-10 py-4 md:py-5 rounded-full font-sans font-bold text-lg md:text-xl flex items-center justify-center gap-3 shadow-[0_0_40px_-10px_rgba(74,103,65,0.5)] hover:scale-[1.02] transition-all duration-300"
+            >
+              <span>Email Me Tomato Codes</span>
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </button>
+            <button 
+              onClick={() => { setActiveVeg('Tomato'); setActiveCode(0); setView('tomato-codes'); }}
+              className="group flex items-center gap-2 text-ink/80 font-sans font-bold hover:text-primary transition-colors px-4 py-2"
+            >
+              <span className="border-b border-transparent group-hover:border-primary transition-colors">Preview The Vault</span>
+              <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
+            </button>
+          </div>
+        </div>
+        <div className="relative order-1 lg:order-2">
+          <div className="absolute inset-0 bg-primary/10 rounded-[32px] md:rounded-[40px] -rotate-3 scale-105 -z-10" />
+          <motion.img 
+            initial={{ opacity: 0, scale: 0.9, rotate: -5 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            src="https://images.unsplash.com/photo-1592841200221-a6898f307baa?auto=format&fit=crop&q=80&w=1000" 
+            alt="A warm, golden-hour photograph of a Texas backyard vegetable garden — raised cedar garden beds with thriving tomato plants"
+            className="rounded-[32px] md:rounded-[40px] shadow-2xl aspect-[4/5] object-cover grayscale-[0.1] contrast-110"
+            referrerPolicy="no-referrer"
+          />
+          
+          {/* Floating Premium Codes Sneak Peek */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5 }}
+            className="absolute top-8 -right-8 bg-ink text-white p-4 rounded-2xl shadow-2xl border border-white/10 rotate-6 hidden md:block max-w-[180px]"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Lock className="w-3 h-3 text-primary" />
+              <p className="text-xs font-bold uppercase tracking-widest text-primary">Premium Code #42</p>
+            </div>
+            <p className="text-sm font-serif italic">"The Cinnamon Fungal Shield"</p>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.7 }}
+            className="absolute top-1/3 -left-12 bg-white p-4 rounded-2xl shadow-2xl border border-accent -rotate-6 hidden md:block max-w-[180px]"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Lock className="w-3 h-3 text-primary" />
+              <p className="text-xs font-bold uppercase tracking-widest text-primary">Premium Code #108</p>
+            </div>
+            <p className="text-sm font-serif italic">"Banana Peel Potassium Tea"</p>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.9 }}
+            className="absolute bottom-1/4 -right-12 bg-white p-4 rounded-2xl shadow-2xl border border-accent rotate-3 hidden md:block max-w-[180px]"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Lock className="w-3 h-3 text-primary" />
+              <p className="text-xs font-bold uppercase tracking-widest text-primary">Premium Code #215</p>
+            </div>
+            <p className="text-sm font-serif italic">"Milk Spray Mildew Cure"</p>
+          </motion.div>
+
+          <div className="absolute -bottom-4 -left-4 md:-bottom-6 md:-left-6 bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-xl border border-accent max-w-[200px] md:max-w-xs">
+            <div className="flex gap-1 mb-2 md:mb-3">
+              {[1,2,3,4,5].map(i => <Sun key={i} className="w-2 h-2 md:w-3 md:h-3 text-primary fill-primary" aria-hidden="true" />)}
+            </div>
+            <p className="text-sm md:text-base italic font-serif text-ink leading-relaxed">"I always thought burying the stem was just an old myth until the AgriLife root data confirmed it. My plants have never been this resilient."</p>
+            <p className="mt-2 md:mt-4 text-xs md:text-sm font-sans font-bold uppercase tracking-widest text-primary">— SARAH J., ZONE 8a BACKYARD GROWER</p>
+          </div>
+        </div>
+      </header>
+
+      <section className="py-16 md:py-24 bg-white border-y border-accent">
+        <div className="max-w-6xl mx-auto px-4 md:px-8">
+          <div className="text-center mb-12 md:text-left md:mb-16">
+            <h2 className="text-4xl md:text-5xl font-light mb-4">What's inside the <span className="italic text-primary">Tomato Vault</span>?</h2>
+            <p className="text-lg md:text-xl text-ink/70 font-sans max-w-2xl">
+              A sneak peek at the first 5 of our 50+ tomato-specific cheat codes.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 mb-12 md:mb-16">
+            {[
+              { title: "Deep Stem Planting", desc: "Increase root mass by 300% for drought resistance." },
+              { title: "The Morning Shake", desc: "Mimic native pollinators to increase fruit set by 15%." },
+              { title: "Sucker Pruning", desc: "Redirect energy to fruit instead of foliage for 25% larger yield." },
+              { title: "First Blush Harvest", desc: "Beat the pests and sun-scald with the 'Breaker Stage' strategy." },
+              { title: "The Aspirin Boost", desc: "Trigger Systemic Acquired Resistance (SAR) for immune health." }
+            ].map((item, i) => (
+              <div key={i} className="p-6 rounded-3xl bg-paper border border-accent hover:border-primary transition-all">
+                <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center mb-4">
+                  <CheckCircle2 className="w-5 h-5 text-primary" aria-hidden="true" />
+                </div>
+                <h3 className="text-lg font-bold mb-2 leading-tight">{item.title}</h3>
+                <p className="text-xs text-ink/70 font-sans">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="text-center">
+            <button 
+              onClick={() => { setActiveVeg('Tomato'); setActiveCode(0); setView('tomato-codes'); }}
+              className="text-primary font-bold font-sans uppercase tracking-widest flex items-center gap-2 mx-auto hover:gap-4 transition-all text-sm"
+            >
+              Preview The Free Tomato Codes <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16 md:py-24 bg-paper overflow-hidden">
+        <div className="max-w-6xl mx-auto px-4 md:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 md:gap-16 items-center">
+            <div>
+              <h2 className="text-4xl md:text-5xl font-light mb-6 md:mb-8 leading-tight">
+                Beyond Tomatoes: The <span className="italic text-primary">Full Vault</span> Experience.
+              </h2>
+              <p className="text-lg md:text-xl text-ink/80 mb-8 md:mb-12 font-sans">
+                The Garden Cheat Code Vault isn't just for tomatoes. We've mapped out the ancestral secrets and scientific data for every major vegetable in your patch.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  { name: "Carrots", count: 18, icon: <Sprout className="w-5 h-5" aria-hidden="true" /> },
+                  { name: "Peppers", count: 12, icon: <Zap className="w-5 h-5" aria-hidden="true" /> },
+                  { name: "Cucumbers", count: 15, icon: <Droplets className="w-5 h-5" aria-hidden="true" /> },
+                  { name: "Squash", count: 10, icon: <ShieldCheck className="w-5 h-5" aria-hidden="true" /> }
+                ].map((veg, i) => (
+                  <div key={i} className="p-4 rounded-2xl bg-white border border-accent flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center text-primary">
+                      {veg.icon}
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm">{veg.name}</p>
+                      <p className="text-xs uppercase tracking-widest text-ink/80 font-sans">{veg.count} Codes</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="relative">
+              <div className="absolute -inset-4 bg-primary/5 rounded-[48px] blur-3xl -z-10" />
+              <div className="bg-white p-6 md:p-8 rounded-[32px] md:rounded-[40px] border border-accent shadow-2xl relative">
+                <div className="flex items-center justify-between mb-6 md:mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-primary flex items-center justify-center text-white">
+                      <Lock className="w-5 h-5 md:w-6 md:h-6" aria-hidden="true" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm md:text-base">Member Vault</h4>
+                      <p className="text-xs md:text-sm text-ink/80 font-sans">500+ Codes Unlocked</p>
+                    </div>
+                  </div>
+                  <span className="px-3 py-1 rounded-full bg-primary text-white text-xs font-bold uppercase tracking-widest">Premium</span>
+                </div>
+                <div className="space-y-4">
+                  {[
+                    { title: "Epsom Salt Sweetness Hack", id: "21" },
+                    { title: "The Aspirin SAR Trigger", id: "88" },
+                    { title: "Coffee Ground pH Shift", id: "156" }
+                  ].map((item, i) => (
+                    <div key={i} className="h-14 md:h-16 bg-accent/10 rounded-2xl border border-accent/50 flex items-center px-4 md:px-6 gap-4 group hover:bg-accent/20 transition-colors">
+                      <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center">
+                        <Lock className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-ink/80">{item.title}</p>
+                        <p className="text-xs uppercase tracking-widest text-ink/70 font-sans">Code #{item.id}</p>
+                      </div>
+                      <div className="ml-auto w-6 h-6 bg-accent/40 rounded-full flex items-center justify-center">
+                        <ChevronRight className="w-4 h-4 text-primary" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-6 md:mt-8 text-center">
+                  <p className="text-xs md:text-sm text-ink/80 font-sans mb-6">Join 1,200+ master gardeners using the full vault.</p>
+                  <button 
+                    onClick={handleUnlockVault}
+                    className="w-full bg-ink text-white py-4 rounded-full font-bold font-sans uppercase tracking-widest hover:bg-primary transition-colors text-xs md:text-sm"
+                  >
+                    Unlock the Full Vault
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+
+  const TomatoCheatCodesView = () => {
+    const tomatoCodes = groupedCodes['Tomato'] || [];
+    const freeCodesLimit = 8;
+    
+    const currentCodes = groupedCodes[activeVeg] || [];
+    const isTomato = activeVeg === 'Tomato';
+    
+    const sidebarCodes = isTomato ? tomatoCodes : currentCodes;
+    const activeCheat = sidebarCodes[activeCode] || sidebarCodes[0] || ALL_CHEAT_CODES[0];
+    const isLocked = !isBypassMode && (!isTomato || activeCode >= freeCodesLimit);
+
+    return (
+      <div className="py-8 md:py-16 px-4 md:px-8 max-w-6xl mx-auto animate-in slide-in-from-bottom duration-500">
+        <div className="text-center mb-12 md:mb-16">
+          <div className="inline-block px-4 py-1 rounded-full bg-primary text-white text-xs md:text-sm font-bold uppercase tracking-widest mb-4 md:mb-6">
+            Member Preview
+          </div>
+          <h2 className="text-4xl md:text-6xl font-light mb-4 md:mb-6">Free <span className="italic text-primary">Tomato Cheat Codes</span></h2>
+          <p className="text-lg md:text-xl text-ink/80 mb-8 md:mb-12 font-sans max-w-2xl mx-auto">
+            You've unlocked the first 8 codes. These are the foundation of a legendary harvest. To see the remaining 42+ tomato secrets and the full 500+ code Vault, upgrade below.
+          </p>
+        </div>
+
+        <div className="flex gap-2 md:gap-4 mb-8 overflow-x-auto pb-4 no-scrollbar">
+          {vegetables.map(veg => (
+            <button 
+              key={veg}
+              onClick={() => switchVeg(veg)}
+              className={`px-4 md:px-6 py-2 rounded-full font-sans font-bold text-xs md:text-sm whitespace-nowrap transition-all ${activeVeg === veg ? 'bg-primary text-white' : 'bg-white border border-accent text-ink/70 hover:border-primary'}`}
+            >
+              {veg} {!isBypassMode && veg !== 'Tomato' && <Lock className="w-3 h-3 inline ml-1 opacity-60" aria-hidden="true" />}
+            </button>
+          ))}
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-8 mb-16 md:mb-24">
+          <div className="lg:col-span-1 flex lg:flex-col gap-3 overflow-x-auto lg:overflow-x-visible pb-4 lg:pb-0 no-scrollbar">
+            {sidebarCodes.map((code, i) => {
+              const codeLocked = !isBypassMode && (!isTomato || i >= freeCodesLimit);
+              return (
+                <button 
+                  key={i}
+                  onClick={() => switchCode(i)}
+                  className={`shrink-0 w-64 lg:w-full text-left p-4 md:p-6 rounded-2xl border transition-all flex justify-between items-center ${activeCode === i ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-white border-accent hover:border-primary'}`}
+                  aria-label={`${code.topic}${codeLocked ? ' (Locked)' : ''}`}
+                >
+                  <div className="flex items-center gap-3">
+                    {codeLocked && <Lock className={`w-4 h-4 ${activeCode === i ? 'text-white/60' : 'text-primary'}`} aria-hidden="true" />}
+                    <span className="font-bold text-sm md:text-base">{code.topic}</span>
+                  </div>
+                  <ChevronRight className={`w-4 h-4 md:w-5 h-5 ${activeCode === i ? 'text-white' : 'text-primary'}`} aria-hidden="true" />
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="lg:col-span-2">
+            <AnimatePresence mode="wait">
+              {isSwitching ? (
+                <motion.div
+                  key="skeleton"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="bg-white p-6 md:p-10 rounded-[32px] border border-accent shadow-sm space-y-8"
+                >
+                  <div className="space-y-4">
+                    <Skeleton className="h-6 w-24 rounded-full" />
+                    <Skeleton className="h-10 md:h-12 w-3/4" />
+                  </div>
+                  <div className="flex gap-3">
+                    <Skeleton className="h-10 w-24 rounded-full" />
+                    <Skeleton className="h-10 w-24 rounded-full" />
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="w-10 h-10 rounded-full" />
+                        <Skeleton className="h-4 w-24" />
+                      </div>
+                      <Skeleton className="h-20 w-full" />
+                    </div>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="w-10 h-10 rounded-full" />
+                        <Skeleton className="h-4 w-24" />
+                      </div>
+                      <Skeleton className="h-20 w-full" />
+                    </div>
+                  </div>
+                </motion.div>
+              ) : isLocked ? (
+                <motion.div 
+                  key="locked"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="bg-white p-6 md:p-10 rounded-[32px] border border-accent shadow-sm relative overflow-hidden"
+                >
+                  <div className="py-12 md:py-20 text-center space-y-6 md:space-y-8">
+                    <div className="w-16 h-16 md:w-20 md:h-20 bg-accent rounded-full flex items-center justify-center mx-auto mb-6 md:mb-8">
+                      <Lock className="w-8 h-8 md:w-10 md:h-10 text-primary" aria-hidden="true" />
+                    </div>
+                    <h3 className="text-3xl md:text-4xl font-bold">This Code is Locked</h3>
+                    <p className="text-lg md:text-xl text-ink/80 font-sans max-w-md mx-auto">
+                      {isTomato 
+                        ? "You've reached the end of the free preview. Unlock the remaining 42+ tomato secrets by joining the Vault."
+                        : `The full ${activeVeg} library is reserved for our members. Join today to unlock 500+ codes for all vegetables.`}
+                    </p>
+                    <button 
+                      onClick={() => {
+                        const element = document.getElementById('upgrade-section');
+                        element?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="bg-primary text-white px-6 md:px-8 py-3 md:py-4 rounded-full font-bold font-sans uppercase tracking-widest hover:scale-105 transition-transform text-xs md:text-sm"
+                    >
+                      Unlock the Full Vault
+                    </button>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div 
+                  key={`${activeVeg}-${activeCode}`}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="bg-white p-6 md:p-10 rounded-[32px] border border-accent shadow-sm relative overflow-hidden"
+                >
+                    <div className="flex flex-col md:flex-row md:items-center gap-3 mb-6 md:mb-8">
+                      <span className={`inline-block w-fit px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest ${
+                        activeCheat.consensus === 'supported' ? 'bg-green-100 text-green-700' :
+                        activeCheat.consensus === 'disagreement' ? 'bg-orange-100 text-orange-700' :
+                        'bg-blue-100 text-blue-700'
+                      }`}>
+                        {activeCheat.consensus.replace('-', ' ')}
+                      </span>
+                      <h3 className="text-3xl md:text-4xl font-bold leading-tight">{activeCheat.topic}</h3>
+                    </div>
+
+                    <div className="flex flex-wrap gap-3 mb-8">
+                      <button 
+                        onClick={() => toggleSaveCode(activeCheat.id)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs md:text-sm font-bold uppercase tracking-widest transition-all ${
+                          profile?.savedCodes?.includes(activeCheat.id) ? 'bg-primary text-white border-primary' : 'bg-white border-accent text-ink/70 hover:border-primary'
+                        }`}
+                      >
+                        {profile?.savedCodes?.includes(activeCheat.id) ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+                        {profile?.savedCodes?.includes(activeCheat.id) ? 'Saved' : 'Save'}
+                      </button>
+                      <button 
+                        onClick={() => toggleTriedCode(activeCheat.id)}
+                        disabled={profile?.triedCodes?.includes(activeCheat.id)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs md:text-sm font-bold uppercase tracking-widest transition-all ${
+                          profile?.triedCodes?.includes(activeCheat.id) ? 'bg-green-100 text-green-700 border-green-200' : 'bg-white border-accent text-primary hover:border-primary'
+                        }`}
+                      >
+                        <PlayCircle className="w-4 h-4" />
+                        {profile?.triedCodes?.includes(activeCheat.id) ? 'Tried It' : 'Try This'}
+                      </button>
+                      <div className="flex items-center gap-2 text-xs md:text-sm font-sans text-ink/70 ml-auto">
+                        <Users className="w-4 h-4" />
+                        <span>{activeCheat.triedCount} tried this</span>
+                      </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-8 md:gap-12 mb-8 md:mb-12">
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-accent/60 flex items-center justify-center text-primary border border-accent">
+                            <Leaf className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-sans font-bold uppercase tracking-widest text-primary">The Old Ways</p>
+                            <p className="text-[11px] font-sans text-ink/60 uppercase tracking-wider">Generational Lore &amp; Inherited Secrets</p>
+                          </div>
+                        </div>
+                        <p className="text-lg md:text-xl italic text-ink leading-relaxed">"{activeCheat.beatrice}"</p>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                            <Beaker className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-sans font-bold uppercase tracking-widest text-ink/80">Horticultural Science</p>
+                            <p className="text-[11px] font-sans text-ink/60 uppercase tracking-wider">Peer-Reviewed Research Findings</p>
+                          </div>
+                        </div>
+                        <p className="text-base md:text-lg text-ink/70 font-sans leading-relaxed">{activeCheat.greg}</p>
+                      </div>
+                    </div>
+
+                    {activeCheat.study && (
+                      <div className="bg-accent/20 p-6 md:p-8 rounded-2xl border border-accent/50 space-y-4">
+                        <div className="flex items-center gap-2 text-primary">
+                          <Beaker className="w-5 h-5" aria-hidden="true" />
+                          <h4 className="font-sans font-bold uppercase tracking-widest text-xs">Scientific Citation</h4>
+                        </div>
+                        <div>
+                          <p className="font-bold text-ink text-sm md:text-base">{activeCheat.study?.title}</p>
+                          <p className="text-xs md:text-sm text-ink/70 font-sans mb-4">{activeCheat.study?.source}</p>
+                          <div className="grid sm:grid-cols-2 gap-6 text-xs md:text-sm">
+                            <div>
+                              <p className="font-bold text-primary mb-1">The Outcome</p>
+                              <p className="text-ink/70 font-sans">{activeCheat.study?.outcome}</p>
+                            </div>
+                            <div>
+                              <p className="font-bold text-primary mb-1">Backyard Application</p>
+                              <p className="text-ink/70 font-sans">{activeCheat.study?.application}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Sales Funnel */}
+        <div id="upgrade-section" className="bg-ink text-white p-8 md:p-16 rounded-[32px] md:rounded-[48px] shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-12 opacity-10">
+            <ShieldCheck className="w-48 md:w-64 h-48 md:h-64 rotate-12" />
+          </div>
+          <div className="relative z-10 grid lg:grid-cols-2 gap-12 md:gap-16 items-center">
+            <div>
+              <h3 className="text-3xl md:text-5xl font-light mb-6 md:mb-8 leading-tight">
+                Unlock the <span className="italic text-primary">Full Vault</span> & Join the Trials.
+              </h3>
+              <ul className="space-y-4 md:space-y-6 mb-8 md:mb-12">
+                {[
+                  "Access to 50+ additional Tomato Cheat Codes",
+                  "The complete 500+ code Vault for all vegetables",
+                  "7-Day 'No-Questions-Asked' Refund Policy",
+                  "Full access to the Laboratory Notebook & Trials",
+                  "Early Access to the DFW Master Class Road Show"
+                ].map((item, i) => (
+                  <li key={i} className="flex gap-3 md:gap-4 items-center text-white/80 font-sans text-sm md:text-base">
+                    <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <button 
+                onClick={handleSubscribe}
+                className="w-full sm:w-auto bg-primary text-white px-8 md:px-12 py-4 md:py-6 rounded-full font-sans font-bold text-lg md:text-2xl shadow-xl hover:scale-105 transition-transform"
+              >
+                Upgrade to Full Access
+              </button>
+              <p className="mt-6 text-white/80 text-xs md:text-sm font-sans">
+                Join 1,200+ master gardeners in the DFW area.
+              </p>
+            </div>
+            <div className="bg-white/5 p-6 md:p-10 rounded-2xl md:rounded-[32px] border border-white/10 backdrop-blur-sm">
+              <h4 className="text-lg md:text-2xl font-bold mb-6 italic leading-relaxed">"The best $37 I've ever spent on my garden. The aspirin trick alone saved my entire crop last July."</h4>
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-accent" />
+                <div>
+                  <p className="font-bold text-sm md:text-base">Michael R.</p>
+                  <p className="text-xs md:text-sm text-white/80 uppercase tracking-widest font-sans">Verified Member • Fort Worth</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const MembersView = () => {
+    const rawCodes = groupedCodes[activeVeg] || [];
+    const currentCodes = vaultSearchQuery.trim()
+      ? rawCodes.filter(c => 
+          c.topic.toLowerCase().includes(vaultSearchQuery.toLowerCase()) ||
+          c.beatrice.toLowerCase().includes(vaultSearchQuery.toLowerCase()) ||
+          c.greg.toLowerCase().includes(vaultSearchQuery.toLowerCase()) ||
+          (c.study?.title && c.study.title.toLowerCase().includes(vaultSearchQuery.toLowerCase()))
+        )
+      : rawCodes;
+    const activeCheat = currentCodes[activeCode] || currentCodes[0] || ALL_CHEAT_CODES[0];
+
+    return (
+      <div className="py-8 md:py-16 px-4 md:px-8 max-w-6xl mx-auto animate-in slide-in-from-bottom duration-500">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 md:mb-12 gap-6 md:gap-8">
+          <div>
+            <div className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest mb-3">
+              {microclimateMode === 'dfw' ? 'Texas & Gulf South Zone 8a Edition' : 'National USDA Zones 4–10 Edition'}
+            </div>
+            <h2 className="text-4xl md:text-6xl font-light mb-4">The Vault</h2>
+            <p className="text-base md:text-xl text-ink/80 font-sans max-w-xl">
+              Welcome, Member. Here are the verified Cheat Codes for {microclimateMode === 'dfw' ? 'your Texas microclimate' : 'backyard food growers nationwide'}. Validating generations of inherited folk wisdom against empirical horticultural research.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+            <div className="bg-white p-3 md:p-4 rounded-2xl border border-accent shadow-sm flex items-center justify-between gap-4 w-full md:w-auto">
+              <div className="flex items-center gap-3">
+                <div className="bg-accent p-2 rounded-lg">
+                  {microclimateMode === 'dfw' ? (
+                    <MapPin className="text-primary w-4 h-4 md:w-5 md:h-5" aria-hidden="true" />
+                  ) : (
+                    <Globe className="text-primary w-4 h-4 md:w-5 md:h-5" aria-hidden="true" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs md:text-sm uppercase tracking-widest font-bold text-primary">
+                    {microclimateMode === 'dfw' ? 'Regional Targeting' : 'Nationwide Edition'}
+                  </p>
+                  <p className="text-xs md:text-sm font-sans font-bold">
+                    {microclimateMode === 'dfw' ? 'Dallas-Fort Worth (8a/8b)' : 'All USDA Zones (4–10)'}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setMicroclimateMode(prev => prev === 'dfw' ? 'national' : 'dfw')}
+                className="text-xs font-sans font-bold text-primary hover:text-ink underline ml-2 px-2.5 py-1.5 bg-accent/40 rounded-lg whitespace-nowrap transition-colors"
+                title="Toggle between Regional Texas Microclimate and Nationwide Edition"
+              >
+                Switch to {microclimateMode === 'dfw' ? 'Nationwide' : 'Zone 8a'} ⇄
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Vault Search Input */}
+        <div className="mb-8 relative max-w-xl">
+          <input
+            type="text"
+            value={vaultSearchQuery}
+            onChange={(e) => {
+              setVaultSearchQuery(e.target.value);
+              setActiveCode(0);
+            }}
+            placeholder={`Search ${activeVeg} codes, remedies, citations, or symptoms...`}
+            className="w-full pl-5 pr-10 py-3 rounded-full border border-accent bg-white text-sm font-sans text-ink focus:ring-2 focus:ring-primary outline-none shadow-sm"
+          />
+          {vaultSearchQuery ? (
+            <button 
+              onClick={() => setVaultSearchQuery('')}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-ink/40 hover:text-ink"
+            >
+              ✕
+            </button>
+          ) : (
+            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-ink/40">🔍</span>
+          )}
+        </div>
+
+        <div className="flex gap-2 md:gap-4 mb-8 overflow-x-auto pb-4 no-scrollbar">
+          {vegetables.map(veg => (
+            <button 
+              key={veg}
+              onClick={() => switchVeg(veg)}
+              className={`px-4 md:px-6 py-2 rounded-full font-sans font-bold text-xs md:text-sm whitespace-nowrap transition-all ${activeVeg === veg ? 'bg-primary text-white' : 'bg-white border border-accent text-ink/70 hover:border-primary'}`}
+            >
+              {veg}
+            </button>
+          ))}
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-1 flex lg:flex-col gap-3 overflow-x-auto lg:overflow-x-visible pb-4 lg:pb-0 no-scrollbar">
+            {currentCodes.length === 0 ? (
+              <div className="p-6 bg-white rounded-2xl border border-accent text-center text-xs font-sans text-ink/60">
+                No codes found matching "{vaultSearchQuery}".
+              </div>
+            ) : (
+              currentCodes.map((code, i) => (
+                <button 
+                  key={i}
+                  onClick={() => switchCode(i)}
+                  className={`shrink-0 w-64 lg:w-full text-left p-4 md:p-6 rounded-2xl border transition-all flex justify-between items-center ${activeCode === i ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-white border-accent hover:border-primary'}`}
+                  aria-label={code.topic}
+                >
+                  <span className="font-bold text-sm md:text-base">{code.topic}</span>
+                  <ChevronRight className={`w-4 h-4 md:w-5 h-5 ${activeCode === i ? 'text-white' : 'text-primary'}`} aria-hidden="true" />
+                </button>
+              ))
+            )}
+          </div>
+
+          <div className="lg:col-span-2 space-y-8">
+            <AnimatePresence mode="wait">
+              {isSwitching ? (
+                <motion.div
+                  key="skeleton"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="bg-white p-6 md:p-10 rounded-[32px] border border-accent shadow-sm space-y-8"
+                >
+                  <div className="space-y-4">
+                    <Skeleton className="h-6 w-24 rounded-full" />
+                    <Skeleton className="h-10 md:h-12 w-3/4" />
+                  </div>
+                  <div className="flex gap-3">
+                    <Skeleton className="h-10 w-24 rounded-full" />
+                    <Skeleton className="h-10 w-24 rounded-full" />
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="w-10 h-10 rounded-full" />
+                        <Skeleton className="h-4 w-24" />
+                      </div>
+                      <Skeleton className="h-20 w-full" />
+                    </div>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="w-10 h-10 rounded-full" />
+                        <Skeleton className="h-4 w-24" />
+                      </div>
+                      <Skeleton className="h-20 w-full" />
+                    </div>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div 
+                  key={`${activeVeg}-${activeCode}`}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="bg-white p-6 md:p-10 rounded-[32px] border border-accent shadow-sm"
+                >
+                <div className="flex flex-col md:flex-row md:items-center gap-3 mb-6 md:mb-8">
+                  <span className={`inline-block w-fit px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest ${
+                    activeCheat.consensus === 'supported' ? 'bg-green-100 text-green-700' :
+                    activeCheat.consensus === 'disagreement' ? 'bg-orange-100 text-orange-800' :
+                    'bg-blue-100 text-blue-700'
+                  }`}>
+                    {activeCheat.consensus.replace('-', ' ')}
+                  </span>
+                  <h3 className="text-3xl md:text-4xl font-bold leading-tight">{activeCheat.topic}</h3>
+                </div>
+
+                <div className="flex flex-wrap gap-3 mb-8">
+                  <button 
+                    onClick={() => toggleSaveCode(activeCheat.id)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs md:text-sm font-bold uppercase tracking-widest transition-all ${
+                      profile?.savedCodes?.includes(activeCheat.id) ? 'bg-primary text-white border-primary' : 'bg-white border-accent text-ink/70 hover:border-primary'
+                    }`}
+                  >
+                    {profile?.savedCodes?.includes(activeCheat.id) ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+                    {profile?.savedCodes?.includes(activeCheat.id) ? 'Saved' : 'Save'}
+                  </button>
+                  <button 
+                    onClick={() => toggleTriedCode(activeCheat.id)}
+                    disabled={profile?.triedCodes?.includes(activeCheat.id)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs md:text-sm font-bold uppercase tracking-widest transition-all ${
+                      profile?.triedCodes?.includes(activeCheat.id) ? 'bg-green-100 text-green-700 border-green-200' : 'bg-white border-accent text-primary hover:border-primary'
+                    }`}
+                  >
+                    <PlayCircle className="w-4 h-4" />
+                    {profile?.triedCodes?.includes(activeCheat.id) ? 'Tried It' : 'Try This'}
+                  </button>
+                  <div className="flex items-center gap-2 text-xs md:text-sm font-sans text-ink/70 ml-auto">
+                    <Users className="w-4 h-4" />
+                    <span>{activeCheat.triedCount} tried this</span>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-8 md:gap-12 mb-8 md:mb-12">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-accent/60 flex items-center justify-center text-primary border border-accent">
+                        <Leaf className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-sans font-bold uppercase tracking-widest text-primary">The Old Ways</p>
+                        <p className="text-[11px] font-sans text-ink/60 uppercase tracking-wider">Generational Lore &amp; Inherited Secrets</p>
+                      </div>
+                    </div>
+                    <p className="text-lg md:text-xl italic text-ink leading-relaxed">"{activeCheat.beatrice}"</p>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                        <Beaker className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-sans font-bold uppercase tracking-widest text-ink/80">Horticultural Science</p>
+                        <p className="text-[11px] font-sans text-ink/60 uppercase tracking-wider">Peer-Reviewed Research Findings</p>
+                      </div>
+                    </div>
+                    <p className="text-base md:text-lg text-ink/70 font-sans leading-relaxed">{activeCheat.greg}</p>
+                  </div>
+                </div>
+
+                {activeCheat.study && (
+                  <div className="bg-accent/20 p-6 md:p-8 rounded-2xl border border-accent/50 space-y-4">
+                    <div className="flex items-center gap-2 text-primary">
+                      <Beaker className="w-5 h-5" aria-hidden="true" />
+                      <h4 className="font-sans font-bold uppercase tracking-widest text-xs">Scientific Citation</h4>
+                    </div>
+                    <div>
+                      <p className="font-bold text-ink text-sm md:text-base">{activeCheat.study?.title}</p>
+                      <p className="text-xs md:text-sm text-ink/70 font-sans mb-4">{activeCheat.study?.source}</p>
+                      <div className="grid sm:grid-cols-2 gap-6 text-xs md:text-sm">
+                        <div>
+                          <p className="font-bold text-primary mb-1">The Outcome</p>
+                          <p className="text-ink/70 font-sans">{activeCheat.study?.outcome}</p>
+                        </div>
+                        <div>
+                          <p className="font-bold text-primary mb-1">Backyard Application</p>
+                          <p className="text-ink/70 font-sans">{activeCheat.study?.application}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeCheat.consensus === 'trial-needed' && (
+                  <div className="mt-8 p-6 md:p-8 bg-blue-50 rounded-2xl border border-blue-100 flex flex-col sm:flex-row items-start gap-4">
+                    <AlertTriangle className="w-6 h-6 text-blue-600 shrink-0 mt-1" />
+                    <div>
+                      <h4 className="font-bold text-blue-900 mb-2">Laboratory Notebook Entry Needed</h4>
+                      <p className="text-sm text-blue-800/70 font-sans mb-4">
+                        The evidence here is anecdotal. We need your data to settle the debate. Log your results below to help the community.
+                      </p>
+                      <button onClick={() => setView('lab')} className="text-sm font-bold text-blue-600 hover:underline flex items-center gap-2">
+                        Open Lab Notebook <ExternalLink className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {activeCheat.extensionSupport && (
+                  <div className="mt-8 flex items-center gap-3 text-xs md:text-sm font-sans text-ink/70">
+                    <ShieldCheck className="w-4 h-4 text-primary" />
+                    <span>Aligned with {activeCheat.extensionSupport}</span>
+                  </div>
+                )}
+
+                <div className="mt-8 md:mt-12 pt-8 md:pt-12 border-t border-accent">
+                  <div className="bg-primary/5 p-6 md:p-8 rounded-3xl border border-primary/20 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                      <Lock className="w-12 md:w-16 h-12 md:h-16 -rotate-12" />
+                    </div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <TrendingUp className="w-5 h-5 text-primary" />
+                      <h4 className="text-lg md:text-xl font-bold italic">The DFW Road Show: Master Class</h4>
+                    </div>
+                    <p className="text-xs md:text-sm text-ink/70 font-sans mb-6 max-w-lg">
+                      A strictly invite-only, underground master class for those who want to master the 'Cheat Codes' in person. The location is revealed only to the waitlist.
+                    </p>
+                    <button 
+                      onClick={() => setWaitlistJoined(true)}
+                      className={`px-6 py-2 rounded-full font-sans font-bold text-xs md:text-sm transition-all shadow-md ${waitlistJoined ? 'bg-green-500 text-white' : 'bg-primary text-white hover:scale-105'}`}
+                    >
+                      {waitlistJoined ? 'Joined Waitlist' : 'Join Waitlist'}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+      </div>
+    );
+  };
+
+
+
+  const LabView = () => {
+    const [recentResults, setRecentResults] = useState<{userId: string, result: string}[]>([]);
+    const [localLabResult, setLocalLabResult] = useState("");
+
+    useEffect(() => {
+      const path = 'lab_notes/epsom-salts';
+      const docRef = doc(db, 'lab_notes', 'epsom-salts');
+      
+      const initNote = async () => {
+        try {
+          const snap = await getDoc(docRef);
+          if (!snap.exists()) {
+            await setDoc(docRef, {
+              id: 'epsom-salts',
+              topic: 'Epsom Salts',
+              hypothesis: 'Magnesium improves sweetness',
+              userResults: []
+            });
+          }
+        } catch (e) {
+          console.error("Failed to init lab note:", e);
+        }
+      };
+      initNote();
+
+      const unsubscribe = onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data() as LabNote;
+          setRecentResults(data.userResults || []);
+        }
+      }, (error) => {
+        handleFirestoreError(error, OperationType.GET, path);
+      });
+      return unsubscribe;
+    }, []);
+
+    const dummyEntries = [
+      { userId: "user_123", result: "My Celebrity tomatoes are noticeably sweeter this year. I used 1 tbsp per gal." },
+      { userId: "user_456", result: "Didn't see much difference in the clay soil here in Plano. Maybe soil type matters?" },
+      { userId: "user_789", result: "Control group (no salts) actually had more blossom end rot. Interesting." },
+      { userId: "user_abc", result: "The foliage is much greener on the test plants. Chlorophyll boost is real." },
+      { userId: "user_xyz", result: "Harvested 5 lbs more from the Epsom row. I'm a believer now." }
+    ];
+
+    const allResults = [...dummyEntries, ...recentResults];
+
+    return (
+      <div className="py-8 md:py-24 px-4 md:px-8 max-w-4xl mx-auto animate-in fade-in duration-500">
+        <div className="text-center mb-12 md:mb-16">
+          <Beaker className="w-16 h-16 md:w-20 md:h-20 text-primary mx-auto mb-6 md:mb-8" />
+          <h2 className="text-4xl md:text-6xl font-light mb-4 md:mb-6">The Laboratory Notebook</h2>
+          <p className="text-lg md:text-xl text-ink/80 mb-8 md:mb-12 font-sans">
+            Where the community settles the science. Share your results, help us refine the Cheat Codes.
+          </p>
+        </div>
+
+        <div className="bg-white p-6 md:p-12 rounded-[32px] md:rounded-[48px] border border-accent shadow-sm mb-12 md:mb-16 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-8 opacity-5">
+            <Beaker className="w-24 h-24 md:w-32 md:h-32" />
+          </div>
+          <div className="flex items-center gap-3 mb-6 md:mb-8">
+            <div className="bg-primary/10 p-2 md:p-3 rounded-xl md:rounded-2xl">
+              <BookOpen className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-2xl md:text-3xl font-bold">Scientific Study Protocol</h3>
+              <p className="text-xs md:text-sm font-sans font-bold uppercase tracking-widest text-primary">Trial ID: EPSOM-2026-DFW</p>
+            </div>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12 font-sans">
+            <div className="space-y-6 md:space-y-8">
+              <div className="relative pl-8 border-l-2 border-accent">
+                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary border-4 border-white" />
+                <h4 className="font-bold text-ink mb-2 uppercase tracking-wide text-xs md:text-sm">Step 1: The Setup (Test vs Control)</h4>
+                <p className="text-xs md:text-sm text-ink/70 leading-relaxed">
+                  Choose two identical tomato plants of the same variety. Label one <span className="font-bold text-primary">'TEST'</span> and one <span className="font-bold text-ink/70">'CONTROL'</span>. They must be in the same soil type and receive the same sunlight.
+                </p>
+              </div>
+              
+              <div className="relative pl-8 border-l-2 border-accent">
+                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary border-4 border-white" />
+                <h4 className="font-bold text-ink mb-2 uppercase tracking-wide text-xs md:text-sm">Step 2: Log Starting Point</h4>
+                <div className="text-xs md:text-sm text-ink/70 leading-relaxed">
+                  Before applying anything, measure:
+                  <ul className="mt-2 space-y-1 list-disc list-inside opacity-80 text-xs md:text-sm">
+                    <li>Plant height (cm)</li>
+                    <li>Leaf color (1-10 scale)</li>
+                    <li>Number of flower clusters</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-6 md:space-y-8">
+              <div className="relative pl-8 border-l-2 border-accent">
+                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary border-4 border-white" />
+                <h4 className="font-bold text-ink mb-2 uppercase tracking-wide text-xs md:text-sm">Step 3: The Application</h4>
+                <p className="text-xs md:text-sm text-ink/70 leading-relaxed">
+                  Apply 1 tablespoon of Epsom Salts (Magnesium Sulfate) to the base of the <span className="font-bold text-primary">'TEST'</span> plant only, once every 3 weeks. Water in thoroughly.
+                </p>
+              </div>
+              
+              <div className="relative pl-8 border-l-2 border-accent">
+                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary border-4 border-white" />
+                <h4 className="font-bold text-ink mb-2 uppercase tracking-wide text-xs md:text-sm">Step 4: The Final Analysis</h4>
+                <p className="text-xs md:text-sm text-ink/70 leading-relaxed">
+                  At harvest, weigh the total fruit from each plant. Note the sweetness (Brix) and overall vine health. We will compare your anecdotal evidence against the control group.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6 md:gap-8 text-left mb-12 md:mb-16">
+          <div className="bg-white p-6 md:p-10 rounded-3xl border border-accent shadow-sm">
+            <h3 className="text-xl md:text-2xl font-bold mb-4">Active Trial: Epsom Salts</h3>
+            <p className="text-xs md:text-sm text-ink/80 font-sans mb-6">Does Magnesium Sulfate actually improve fruit sweetness in DFW clay? We have {42 + recentResults.length} active participants.</p>
+            <div className="flex items-center gap-4 mb-8">
+              <div className="flex -space-x-3">
+                {[1,2,3,4].map(i => <div key={i} className="w-6 h-6 md:w-8 md:h-8 rounded-full border-2 border-white bg-accent" />)}
+              </div>
+              <span className="text-xs md:text-sm font-sans font-bold text-primary">+{38 + recentResults.length} others</span>
+            </div>
+            
+            {user ? (
+              <div className="space-y-4">
+                <label htmlFor="lab-result" className="sr-only">Describe your results</label>
+                <textarea 
+                  id="lab-result"
+                  value={localLabResult}
+                  onChange={(e) => setLocalLabResult(e.target.value)}
+                  placeholder="Describe your results (e.g., 'Fruit was noticeably sweeter after 3 weeks')"
+                  className="w-full p-4 rounded-xl border border-accent font-sans text-xs md:text-sm focus:ring-2 focus:ring-primary outline-none h-24 md:h-32"
+                />
+                <button 
+                  onClick={async () => {
+                    await handleLabSubmit('epsom-salts', localLabResult);
+                    setLocalLabResult("");
+                  }}
+                  className="w-full bg-primary text-white py-3 rounded-full font-sans font-bold hover:scale-105 transition-transform text-xs md:text-sm"
+                >
+                  Log My Result
+                </button>
+              </div>
+            ) : (
+              <button onClick={handleSignIn} className="w-full border-2 border-primary text-primary py-3 rounded-full font-sans font-bold hover:bg-primary hover:text-white transition-all text-xs md:text-sm">Sign In to Join Trial</button>
+            )}
+          </div>
+
+          <div className="bg-ink text-white p-6 md:p-10 rounded-3xl border border-accent shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-6 opacity-10">
+              <CheckCircle2 className="w-16 h-16 md:w-24 md:h-24" />
+            </div>
+            <div className="relative z-10">
+              <div className="inline-block px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-bold uppercase tracking-widest mb-4">
+                Closed Trial: 2025 Results
+              </div>
+              <h3 className="text-xl md:text-2xl font-bold mb-4">Deep Stem Planting</h3>
+              <p className="text-xs md:text-sm text-white/60 font-sans mb-6 leading-relaxed">
+                Our largest study to date. 1,200+ participants tested the "Bury 2/3" method across 14 soil types.
+              </p>
+              <div className="space-y-4 mb-8">
+                <div className="flex justify-between items-end border-b border-white/10 pb-2">
+                  <span className="text-xs md:text-sm font-sans text-white/80 uppercase tracking-widest">Drought Tolerance</span>
+                  <span className="text-lg md:text-xl font-bold text-primary">+85%</span>
+                </div>
+                <div className="flex justify-between items-end border-b border-white/10 pb-2">
+                  <span className="text-xs md:text-sm font-sans text-white/80 uppercase tracking-widest">Stem Diameter</span>
+                  <span className="text-lg md:text-xl font-bold text-primary">+42%</span>
+                </div>
+              </div>
+              <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                <p className="text-xs font-sans italic text-white/70">
+                  "The consensus is clear: Beatrice was right. Adventitious root mass is the primary driver for summer survival in Texas." — Dr. Greg
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-12 md:mb-24">
+          <h3 className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-12">Upcoming Research Pipeline</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            {[
+              { title: "Coffee Grounds", date: "April", desc: "Soil pH & Nitrogen impact." },
+              { title: "Banana Peel Tea", date: "May", desc: "Potassium for flowering." },
+              { title: "Aspirin Spray", date: "June", desc: "SAR immune response." },
+              { title: "Eggshell Vinegar", date: "July", desc: "Rapid calcium uptake." },
+              { title: "Molasses Drench", date: "August", desc: "Microbial activity boost." },
+              { title: "Cinnamon Dust", date: "Sept", desc: "Fungal prevention." },
+              { title: "H2O2 Roots", date: "Oct", desc: "Clay soil oxygenation." },
+              { title: "Rice Water", date: "Nov", desc: "Starch growth trials." }
+            ].map((trial, i) => (
+              <div key={i} className="bg-white p-6 rounded-2xl border border-accent shadow-sm opacity-60 hover:opacity-100 transition-opacity group">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="bg-accent p-2 rounded-lg group-hover:bg-primary/10 transition-colors">
+                    <Lock className="w-4 h-4 text-ink/70 group-hover:text-primary transition-colors" />
+                  </div>
+                  <span className="text-xs font-bold uppercase tracking-widest text-primary">{trial.date}</span>
+                </div>
+                <h4 className="font-bold mb-2 text-sm md:text-base">{trial.title}</h4>
+                <p className="text-xs md:text-sm text-ink/80 font-sans leading-relaxed">{trial.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-8">
+          <h3 className="text-2xl md:text-3xl font-bold text-center mb-6 md:mb-8">Community Activity Feed</h3>
+          <div className="relative overflow-hidden h-[300px] md:h-[400px]">
+            <div className="absolute inset-0 bg-gradient-to-b from-paper via-transparent to-paper z-10 pointer-events-none" />
+            <div className="animate-marquee-vertical space-y-4">
+              {[...allResults, ...allResults].map((res, i) => (
+                <div key={i} className="bg-white p-4 md:p-6 rounded-2xl border border-accent shadow-sm flex gap-3 md:gap-4 items-start">
+                  <Quote className="w-5 h-5 md:w-6 md:h-6 text-primary shrink-0" />
+                  <div>
+                    <p className="text-xs md:text-sm text-ink/70 font-sans italic">"{res.result}"</p>
+                    <p className="text-xs md:text-sm uppercase tracking-widest font-bold text-primary mt-2">User ID: {res.userId.slice(0, 8)}...</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <ErrorBoundary>
+      <div className="min-h-screen bg-paper text-ink font-serif selection:bg-accent pb-20 lg:pb-0">
+        <Navigation />
+        
+        <main className="pb-12">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={view}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+            >
+              {view === 'public' && <PublicView />}
+              {view === 'members' && <MembersView />}
+              {view === 'tomato-codes' && <TomatoCheatCodesView />}
+              {view === 'lab' && <LabView />}
+              {view === 'opt-in' && <OptInView />}
+              {view === 'email-sent' && <EmailSentView />}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+
+        <MobileNav />
+
+        <footer className="py-12 px-8 border-t border-accent bg-white text-center hidden lg:block">
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <Sprout className="text-primary w-6 h-6" aria-hidden="true" />
+            <span className="text-xl font-bold tracking-tight">Garden Cheat Codes</span>
+          </div>
+          <p className="text-xs text-ink/80 font-sans uppercase tracking-widest">
+            © 2026 Garden Cheat Codes. All rights reserved. <br />
+            Ancestral Wisdom + Data Strategy.
+          </p>
+        </footer>
+      </div>
+    </ErrorBoundary>
+  );
+}

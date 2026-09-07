@@ -1,0 +1,43 @@
+{
+  "app_blueprint": {
+    "name": "Garden Cheat Codes",
+    "vision": "To bridge the gap between traditional gardening wisdom and modern horticultural science, empowering gardeners to achieve guaranteed harvests.",
+    "principles": [
+      "Actionable over Theoretical: Every piece of advice must be a 'cheat code' that can be applied immediately.",
+      "Data-Backed Ancestral Wisdom: Combine intuition-based knowledge with scientific validation.",
+      "Community-Driven: Foster a space for gardeners to share results and refine codes.",
+      "Transparency: Clearly distinguish between anecdotal wisdom and scientific study outcomes."
+    ],
+    "goals": [
+      "Reduce gardening failure rates by 50% for users.",
+      "Build a community-verified database of 500+ vegetable-specific cheat codes.",
+      "Create a sustainable freemium business model."
+    ],
+    "monetization_strategy": {
+      "model": "Freemium / Subscription",
+      "gatekeeping": {
+        "free_tier": "Access to a limited set of 'Tomato Cheat Codes' (e.g., top 8) to demonstrate value and build trust.",
+        "premium_tier": "The 'Vault' membership. Unlocks 500+ codes for all vegetables, advanced lab notes, and community features."
+      }
+    },
+    "landing_page_structure_hormozi_style": {
+      "hook": "Stop Guessing. Start Growing. Unlock the Secret Cheat Codes to a Legendary Harvest.",
+      "pain_points": [
+        "Wasting time and money on seeds that don't produce.",
+        "Conflicting advice from forums that leads to dead plants.",
+        "The frustration of 'doing everything right' and still failing."
+      ],
+      "solution": "A curated, data-backed database of 'Cheat Codes' that guarantee results by combining ancestral intuition with PhD-level science.",
+      "authority": {
+        "persona_a": "Grandma Beatrice (80 years of ancestral wisdom).",
+        "persona_b": "Dr. Greg (PhD-level horticultural data analysis).",
+        "proof": "Real-world results from thousands of gardeners."
+      },
+      "offer": {
+        "value": "Get the Free Tomato Cheat Sheet immediately.",
+        "upsell": "Upgrade to the Vault for 500+ proven codes and exclusive lab access."
+      },
+      "urgency": "The garden doesn't wait. Start applying these codes today to save this season's harvest."
+    }
+  }
+}
