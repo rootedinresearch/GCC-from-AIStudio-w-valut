@@ -10,6 +10,7 @@
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "sync-research": "node sync_research_sheet.js",
+    "export-vault-sheet": "node build_vault_verification_sheet.cjs",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit"
   },
