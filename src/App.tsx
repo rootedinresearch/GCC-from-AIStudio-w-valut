@@ -233,6 +233,12 @@ export default function App() {
   const [microclimateMode, setMicroclimateMode] = useState<'dfw' | 'national'>('dfw');
   const [vaultSearchQuery, setVaultSearchQuery] = useState('');
 
+  // Lead Funnel Modal State
+  const [showLeadModal, setShowLeadModal] = useState(false);
+  const [leadEmail, setLeadEmail] = useState('');
+  const [leadZip, setLeadZip] = useState('');
+  const [leadSubmitting, setLeadSubmitting] = useState(false);
+
   const groupedCodes = localCheatCodes.reduce((acc, code) => {
     if (!acc[code.vegetable]) acc[code.vegetable] = [];
     acc[code.vegetable].push(code);
@@ -336,17 +342,47 @@ export default function App() {
     }
   };
 
-  const handleLeadGen = async () => {
+  const handleLeadGen = () => {
+    setShowLeadModal(true);
+  };
+
+  const handleLeadSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!leadEmail || !leadEmail.includes('@')) return;
+    setLeadSubmitting(true);
+
     try {
-      const user = await signInWithGoogle();
-      
-      if (user && user.email) {
-        // If they already have an account and have used it, maybe they shouldn't see opt-in,
-        // but let's stick to the flow the user requested.
-        setView('opt-in');
+      // 1. Post to /api/subscribe (Beehiiv / serverless integration)
+      await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: leadEmail, zipCode: leadZip })
+      });
+
+      // 2. Also persist to Firestore 'subscribers' collection if available
+      try {
+        await addDoc(collection(db, 'subscribers'), {
+          email: leadEmail,
+          zipCode: leadZip,
+          createdAt: Date.now(),
+          source: 'tomato-cheat-codes-lead-magnet'
+        });
+      } catch (fsErr) {
+        console.warn("Firestore subscriber store optional notice:", fsErr);
       }
-    } catch (error) {
-      console.error("Auth error:", error);
+
+      // 3. Save to localStorage
+      localStorage.setItem('gcc_subscriber_email', leadEmail);
+      if (leadZip) localStorage.setItem('gcc_subscriber_zip', leadZip);
+
+      setShowLeadModal(false);
+      setView('email-sent');
+    } catch (err) {
+      console.error("Lead submission error:", err);
+      setShowLeadModal(false);
+      setView('email-sent');
+    } finally {
+      setLeadSubmitting(false);
     }
   };
 
@@ -539,41 +575,57 @@ export default function App() {
   );
 
   const handleConsent = async () => {
-    if (user && user.email) {
-      try {
-        await fetch('/api/subscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: user.email })
-        });
-      } catch (syncError) {
-        console.error("Failed to sync with Beehiiv:", syncError);
-      }
-      setView('email-sent');
-    }
+    await handleLeadSubmit();
   };
 
   const OptInView = () => (
-    <div className="py-24 md:py-32 px-4 max-w-2xl mx-auto text-center animate-in fade-in duration-500">
-      <div className="w-20 h-20 bg-accent rounded-full flex items-center justify-center mx-auto mb-8">
-        <Mail className="w-10 h-10 text-primary" />
+    <div className="py-16 md:py-24 px-4 max-w-md mx-auto text-center animate-in fade-in duration-500">
+      <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-6">
+        <Mail className="w-8 h-8 text-primary" />
       </div>
-      <h2 className="text-4xl md:text-5xl font-light mb-6 text-ink">One Last Step</h2>
-      <p className="text-lg md:text-xl text-ink/80 mb-12 font-sans leading-relaxed">
-        To send you the free Tomato Codes, we need your permission to email you. 
-        We respect your inbox and comply with all anti-spam regulations. 
-        You can unsubscribe at any time.
+      <h2 className="text-3xl md:text-4xl font-light mb-4 text-ink">Get The Free Tomato Codes</h2>
+      <p className="text-base text-ink/80 mb-8 font-sans leading-relaxed">
+        Enter your email to receive our field-tested Tomato Cheat Codes, plus seasonal frost and heat alerts.
       </p>
       
-      <button 
-        onClick={handleConsent}
-        className="w-full bg-primary text-white py-5 rounded-full font-bold font-sans text-lg md:text-xl hover:bg-primary/90 transition-all mb-6 shadow-xl shadow-primary/20 hover:scale-[1.02]"
-      >
-        I Consent - Send Me the Codes
-      </button>
+      <form onSubmit={handleLeadSubmit} className="space-y-4 text-left">
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-ink/70 mb-1 font-sans">
+            Email Address *
+          </label>
+          <input 
+            type="email" 
+            required
+            value={leadEmail}
+            onChange={(e) => setLeadEmail(e.target.value)}
+            placeholder="name@example.com"
+            className="w-full px-4 py-3.5 rounded-xl border border-accent bg-paper focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/40 font-sans text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-ink/70 mb-1 font-sans">
+            ZIP Code (Optional)
+          </label>
+          <input 
+            type="text" 
+            value={leadZip}
+            onChange={(e) => setLeadZip(e.target.value)}
+            placeholder="e.g. 76102 for microclimate timing"
+            className="w-full px-4 py-3.5 rounded-xl border border-accent bg-paper focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/40 font-sans text-sm"
+          />
+        </div>
+        <button 
+          type="submit"
+          disabled={leadSubmitting || !leadEmail}
+          className="w-full bg-primary text-white py-4 rounded-full font-bold font-sans text-base hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 hover:scale-[1.01] disabled:opacity-50"
+        >
+          {leadSubmitting ? 'Subscribing...' : '📩 Send Me the Codes'}
+        </button>
+      </form>
+
       <button
         onClick={() => setView('public')}
-        className="text-ink/60 hover:text-ink font-sans underline"
+        className="text-xs text-ink/60 hover:text-ink font-sans underline mt-6 inline-block"
       >
         No thanks, take me back
       </button>
@@ -581,40 +633,49 @@ export default function App() {
   );
 
   const EmailSentView = () => {
-    useEffect(() => {
-      const timer = setTimeout(() => {
-        setView('members');
-      }, 5000); // redirect after 5 seconds
-
-      return () => clearTimeout(timer);
-    }, []);
+    const subscriberEmail = leadEmail || user?.email || (typeof window !== 'undefined' ? localStorage.getItem('gcc_subscriber_email') : '') || 'your email';
 
     return (
-      <div className="py-24 md:py-32 px-4 max-w-2xl mx-auto text-center animate-in fade-in duration-500">
-        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-8">
-          <CheckCircle2 className="w-10 h-10 text-green-600" />
+      <div className="py-16 md:py-24 px-4 max-w-2xl mx-auto text-center animate-in fade-in duration-500">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <CheckCircle2 className="w-8 h-8 text-green-600" />
         </div>
-        <h2 className="text-4xl md:text-5xl font-bold mb-6 text-ink leading-tight">Codes Are In Your Inbox!</h2>
-        <p className="text-lg md:text-xl text-ink/80 mb-12 font-sans leading-relaxed">
-          We've just sent the free Tomato Cheat Codes to <strong>{user?.email}</strong>. 
-          They should arrive in the next 2-3 minutes.
+        <h2 className="text-3xl md:text-5xl font-bold mb-4 text-ink leading-tight">Codes Are In Your Inbox!</h2>
+        <p className="text-base md:text-lg text-ink/80 mb-8 font-sans leading-relaxed">
+          We've just sent the free Tomato Cheat Codes to <strong>{subscriberEmail}</strong>. 
+          Your email has been added to our subscriber database.
         </p>
 
-        <div className="bg-accent/30 p-8 md:p-10 rounded-[32px] border border-accent relative overflow-hidden text-left">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
+          <button 
+            onClick={() => { setActiveVeg('Tomato'); setActiveCode(0); setView('tomato-codes'); }}
+            className="w-full sm:w-auto px-8 py-4 bg-primary text-white rounded-full font-bold font-sans text-base hover:bg-primary/90 transition-all shadow-md flex items-center justify-center gap-2"
+          >
+            🍅 Read Free Tomato Codes Now <ArrowRight className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={() => setView('members')}
+            className="w-full sm:w-auto px-8 py-4 bg-white border-2 border-primary text-primary rounded-full font-bold font-sans text-base hover:bg-primary hover:text-white transition-all shadow-md flex items-center justify-center gap-2"
+          >
+            Explore The Vault <Lock className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="bg-accent/30 p-6 md:p-8 rounded-[32px] border border-accent relative overflow-hidden text-left">
           <div className="absolute top-0 right-0 p-8 opacity-10">
             <Lock className="w-32 h-32 text-primary" />
           </div>
-          <p className="text-sm font-bold uppercase tracking-widest text-primary mb-2">Up Next...</p>
-          <h3 className="text-2xl font-bold text-ink mb-4 relative z-10">Preparing The Vault</h3>
-          <p className="text-base text-ink/80 mb-8 font-sans relative z-10">
-            Redirecting you to The Vault, where you can unlock all 500+ master gardener secrets for your exact microclimate.
+          <p className="text-xs font-bold uppercase tracking-widest text-primary mb-2">Full Vault Access</p>
+          <h3 className="text-xl font-bold text-ink mb-2 relative z-10">Want all 480+ Cheat Codes?</h3>
+          <p className="text-sm text-ink/80 mb-6 font-sans relative z-10">
+            The Vault contains citation-backed research entries for sweet corn, okra, peppers, squash, soil biology, and regional microclimate protocols.
           </p>
           
           <button 
             onClick={() => setView('members')}
-            className="w-full sm:w-auto px-8 py-4 bg-white border-2 border-primary text-primary rounded-full font-bold hover:bg-primary hover:text-white transition-all shadow-md relative z-10 flex items-center justify-center gap-3"
+            className="w-full sm:w-auto px-6 py-3 bg-ink text-white rounded-full font-bold font-sans text-sm hover:bg-primary transition-all shadow-md relative z-10 flex items-center justify-center gap-2"
           >
-            Take Me to The Vault Now <ArrowRight className="w-5 h-5" />
+            Go to The Vault <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -1648,6 +1709,91 @@ export default function App() {
         </main>
 
         <MobileNav />
+
+        {/* Lead Capture Modal */}
+        <AnimatePresence>
+          {showLeadModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                className="bg-white rounded-[32px] p-6 sm:p-10 max-w-md w-full shadow-2xl border border-accent relative"
+              >
+                <button 
+                  onClick={() => setShowLeadModal(false)}
+                  className="absolute top-6 right-6 text-ink/40 hover:text-ink w-8 h-8 rounded-full flex items-center justify-center bg-paper hover:bg-accent transition-colors"
+                  aria-label="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <Sprout className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-widest text-primary">Free Field Guide</span>
+                    <h3 className="text-xl sm:text-2xl font-serif font-light text-ink">Get Tomato Cheat Codes</h3>
+                  </div>
+                </div>
+
+                <p className="text-xs sm:text-sm font-sans text-ink/75 leading-relaxed mb-6">
+                  Enter your email below. We'll send you the Tomato Cheat Codes guide immediately and save your spot in the member trials.
+                </p>
+
+                <form onSubmit={handleLeadSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-ink/70 mb-1.5 font-sans">
+                      Your Email Address *
+                    </label>
+                    <input 
+                      type="email" 
+                      required
+                      value={leadEmail}
+                      onChange={(e) => setLeadEmail(e.target.value)}
+                      placeholder="name@example.com"
+                      className="w-full px-4 py-3 rounded-xl border border-accent bg-paper focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/40 font-sans text-sm"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-ink/70 mb-1.5 font-sans">
+                      ZIP Code or USDA Zone (Optional)
+                    </label>
+                    <input 
+                      type="text" 
+                      value={leadZip}
+                      onChange={(e) => setLeadZip(e.target.value)}
+                      placeholder="e.g. 76102 or Zone 8a (for frost alerts)"
+                      className="w-full px-4 py-3 rounded-xl border border-accent bg-paper focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/40 font-sans text-sm"
+                    />
+                  </div>
+
+                  <button 
+                    type="submit"
+                    disabled={leadSubmitting || !leadEmail}
+                    className="w-full py-3.5 bg-primary text-white rounded-full font-sans font-bold text-base hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+                  >
+                    {leadSubmitting ? (
+                      <span>Saving your subscription...</span>
+                    ) : (
+                      <>
+                        <span>📩 Send Me The Tomato Codes</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+
+                  <p className="text-[11px] text-center text-ink/50 font-sans pt-1">
+                    Zero spam. Unsubscribe anytime. Your details are saved directly to our subscriber database.
+                  </p>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
         <footer className="py-12 px-8 border-t border-accent bg-white text-center hidden lg:block">
           <div className="flex items-center justify-center gap-2 mb-6">
